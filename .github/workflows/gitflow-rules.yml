@@ -1,0 +1,50 @@
+name: "Gitflow Rules"
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, edited]
+
+jobs:
+  validate-gitflow:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Validate source and target branches
+        run: |
+          SOURCE="${{ github.head_ref }}"
+          TARGET="${{ github.base_ref }}"
+
+          echo "Source: $SOURCE"
+          echo "Target: $TARGET"
+
+          if [[ "$SOURCE" == feature/* && "$TARGET" != "develop" ]]; then
+            echo "Branches feature/* só podem abrir PR para develop."
+            exit 1
+          fi
+
+          if [[ "$SOURCE" == fix/* && "$TARGET" != "develop" ]]; then
+            echo "Branches fix/* só podem abrir PR para develop."
+            exit 1
+          fi
+
+          if [[ "$SOURCE" == refactor/* && "$TARGET" != "develop" ]]; then
+            echo "Branches refactor/* só podem abrir PR para develop."
+            exit 1
+          fi
+
+          if [[ "$SOURCE" == docs/* && "$TARGET" != "develop" ]]; then
+            echo "Branches docs/* só podem abrir PR para develop."
+            exit 1
+          fi
+
+          if [[ "$SOURCE" == "develop" && "$TARGET" != "main" ]]; then
+            echo "A branch develop só pode abrir PR para main."
+            exit 1
+          fi
+
+          if [[ "$SOURCE" == hotfix/* && "$TARGET" != "main" ]]; then
+            echo "Branches hotfix/* só podem abrir PR para main."
+            exit 1
+          fi
+
+          echo "Fluxo Gitflow válido."
