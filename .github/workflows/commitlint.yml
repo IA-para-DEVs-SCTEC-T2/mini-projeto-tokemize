@@ -27,10 +27,15 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'npm' # Ativa o cache automático se houver um package-lock.json
 
-      - name: Install dependencies
-        run: npm ci
+      - name: Install commitlint
+        run: npm install --no-save @commitlint/cli @commitlint/config-conventional
+
+      - name: Create commitlint config
+        run: |
+          cat > commitlint.config.js << 'EOF'
+          module.exports = { extends: ['@commitlint/config-conventional'] };
+          EOF
 
       - name: Lint commits
         run: |
