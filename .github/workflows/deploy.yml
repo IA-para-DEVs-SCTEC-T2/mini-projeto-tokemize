@@ -1,0 +1,43 @@
+name: Deploy GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+
+# Garante que apenas um deploy rode por vez; cancela runs anteriores pendentes
+concurrency:
+  group: github-pages-deploy
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: Build & Deploy Showcase
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate showcase directory
+        run: |
+          if [ ! -f "docs/showcase/index.html" ]; then
+            echo "::error::docs/showcase/index.html not found. Aborting deploy."
+            exit 1
+          fi
+          echo "Showcase directory validated."
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./docs/showcase
+          publish_branch: gh-pages
+          keep_files: false
+          commit_message: "deploy: update showcase from ${{ github.sha }}"
