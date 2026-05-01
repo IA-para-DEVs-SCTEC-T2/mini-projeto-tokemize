@@ -1,0 +1,41 @@
+{
+  "projectName": "Tokemize",
+  "tagline": "Uma camada intermediária que melhora como usamos IA",
+  "repo": {
+    "owner": "tokemize-org",
+    "name": "tokemize",
+    "apiTimeout": 8000
+  },
+  "problems": [
+    "Alto custo de tokens",
+    "Respostas imprecisas e alucinações",
+    "Processamento ineficiente"
+  ],
+  "pipeline": ["Entrada Bruta", "Tokemize", "Entrada Otimizada"],
+  "techStack": [
+    { "name": "Python", "url": "https://docs.python.org/3/" },
+    { "name": "Tree-sitter", "url": "https://tree-sitter.github.io/tree-sitter/" },
+    { "name": "FAISS", "url": "https://faiss.ai/index.html" },
+    { "name": "OpenAI API", "url": "https://platform.openai.com/docs" },
+    { "name": "Anthropic API", "url": "https://docs.anthropic.com" }
+  ],
+  "modules": [
+    { "id": "parser",                  "label": "Parser",          "status": "in_progress" },
+    { "id": "indexer",                 "label": "Indexer",         "status": "in_progress" },
+    { "id": "selector",                "label": "Selector",        "status": "planned"     },
+    { "id": "optimizer",               "label": "Optimizer",       "status": "planned"     },
+    { "id": "integrations/llm",        "label": "LLM Integration", "status": "in_progress" },
+    { "id": "integrations/embeddings", "label": "Embeddings",      "status": "planned"     }
+  ],
+  "team": [
+    { "name": "Eneri da Costa Junior",     "github": "jrcosta"          },
+    { "name": "Guilherme Valerio Mertens", "github": "gvmertens"        },
+    { "name": "Paulo Sergio",              "github": "PauloSergioLR"    },
+    { "name": "Samuel Magalhães Marques", "github": "samuelmarquesgit" },
+    { "name": "Eduardo Notari",            "github": "edunotari"        }
+  ],
+  "links": {
+    "repo": "https://github.com/tokemize-org/tokemize",
+    "readme": "https://github.com/tokemize-org/tokemize#readme"
+  }
+}
