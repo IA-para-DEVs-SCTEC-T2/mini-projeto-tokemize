@@ -1,0 +1,206 @@
+/**
+ * ApiClient — abstração sobre a GitHub REST API.
+ * Todas as chamadas usam fetch nativo com AbortController para timeout.
+ */
+
+const BASE_URL = 'https://api.github.com';
+
+// ---------------------------------------------------------------------------
+// ApiError
+// ---------------------------------------------------------------------------
+
+/**
+ * Erro lançado quando uma chamada à GitHub API falha (HTTP ≥ 400 ou timeout).
+ */
+export class ApiError extends Error {
+  /**
+   * @param {number} status    - Código HTTP (ou 0 para timeout/abort)
+   * @param {string} endpoint  - URL do endpoint que falhou
+   * @param {string} message   - Mensagem descritiva
+   */
+  constructor(status, endpoint, message) {
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
+    this.endpoint = endpoint;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Helpers internos
+// ---------------------------------------------------------------------------
+
+/**
+ * Executa um fetch com timeout via AbortController.
+ * Lança ApiError em caso de timeout ou status HTTP ≥ 400.
+ *
+ * @param {string} url
+ * @param {number} timeout - ms
+ * @returns {Promise<Response>}
+ */
+async function fetchWithTimeout(url, timeout) {
+  const controller = new AbortController();
+  const timerId = setTimeout(() => controller.abort(), timeout);
+
+  let response;
+  try {
+    response = await fetch(url, { signal: controller.signal });
+  } catch (err) {
+    clearTimeout(timerId);
+    if (err.name === 'AbortError') {
+      throw new ApiError(0, url, `Request timed out after ${timeout}ms: ${url}`);
+    }
+    throw new ApiError(0, url, `Network error: ${err.message}`);
+  }
+
+  clearTimeout(timerId);
+
+  if (!response.ok) {
+    throw new ApiError(response.status, url, `HTTP ${response.status} from ${url}`);
+  }
+
+  return response;
+}
+
+/**
+ * Extrai o total de itens a partir do header Link da GitHub API.
+ * Técnica: per_page=1 + ler o número da última página no rel="last".
+ *
+ * @param {Response} response
+ * @returns {number}
+ */
+function parseTotalFromLinkHeader(response) {
+  const linkHeader = response.headers.get('Link');
+  if (!linkHeader) return 1;
+  const match = linkHeader.match(/<[^>]*[?&]page=(\d+)[^>]*>;\s*rel="last"/);
+  if (!match) return 1;
+  return parseInt(match[1], 10);
+}
+
+/**
+ * Constrói a URL completa para a GitHub API.
+ *
+ * @param {string} path
+ * @param {Record<string, string|number>} [params]
+ * @returns {string}
+ */
+function buildUrl(path, params = {}) {
+  const url = new URL(`${BASE_URL}${path}`);
+  for (const [key, value] of Object.entries(params)) {
+    url.searchParams.set(key, String(value));
+  }
+  return url.toString();
+}
+
+// ---------------------------------------------------------------------------
+// fetchRepoStats
+// ---------------------------------------------------------------------------
+
+/**
+ * @typedef {Object} RepoStats
+ * @property {number} totalCommits
+ * @property {number} openPRs
+ * @property {number} closedPRs
+ * @property {number} contributors
+ * @property {number} activeBranches
+ * @property {string} lastCommitAt   - ISO 8601
+ */
+
+/**
+ * Busca estatísticas do repositório na GitHub API.
+ *
+ * @param {string} owner
+ * @param {string} repo
+ * @param {number} [timeout=8000]
+ * @returns {Promise<RepoStats>}
+ */
+export async function fetchRepoStats(owner, repo, timeout = 8000) {
+  const base = `/repos/${owner}/${repo}`;
+
+  const commitsUrl      = buildUrl(`${base}/commits`,      { per_page: 1 });
+  const openPRsUrl      = buildUrl(`${base}/pulls`,        { state: 'open',   per_page: 1 });
+  const closedPRsUrl    = buildUrl(`${base}/pulls`,        { state: 'closed', per_page: 1 });
+  const contributorsUrl = buildUrl(`${base}/contributors`, { per_page: 1 });
+  const branchesUrl     = buildUrl(`${base}/branches`,     { per_page: 1 });
+  const lastCommitUrl   = buildUrl(`${base}/commits`,      { sha: 'main', per_page: 1 });
+
+  const [
+    commitsRes,
+    openPRsRes,
+    closedPRsRes,
+    contributorsRes,
+    branchesRes,
+    lastCommitRes,
+  ] = await Promise.all([
+    fetchWithTimeout(commitsUrl,      timeout),
+    fetchWithTimeout(openPRsUrl,      timeout),
+    fetchWithTimeout(closedPRsUrl,    timeout),
+    fetchWithTimeout(contributorsUrl, timeout),
+    fetchWithTimeout(branchesUrl,     timeout),
+    fetchWithTimeout(lastCommitUrl,   timeout),
+  ]);
+
+  const totalCommits   = parseTotalFromLinkHeader(commitsRes);
+  const openPRs        = parseTotalFromLinkHeader(openPRsRes);
+  const closedPRs      = parseTotalFromLinkHeader(closedPRsRes);
+  const contributors   = parseTotalFromLinkHeader(contributorsRes);
+  const activeBranches = parseTotalFromLinkHeader(branchesRes);
+
+  const lastCommitData = await lastCommitRes.json();
+  const lastCommitAt = Array.isArray(lastCommitData) && lastCommitData.length > 0
+    ? lastCommitData[0]?.commit?.author?.date ?? new Date(0).toISOString()
+    : new Date(0).toISOString();
+
+  return { totalCommits, openPRs, closedPRs, contributors, activeBranches, lastCommitAt };
+}
+
+// ---------------------------------------------------------------------------
+// fetchCommitActivity
+// ---------------------------------------------------------------------------
+
+/**
+ * @typedef {Object} WeeklyActivity
+ * @property {string} week          - ISO date string do início da semana
+ * @property {number} totalCommits
+ * @property {Object} byAuthor      - Sempre vazio (a API não retorna por autor)
+ */
+
+/**
+ * Busca a atividade de commits das últimas 13 semanas.
+ *
+ * @param {string} owner
+ * @param {string} repo
+ * @param {number} [timeout=8000]
+ * @returns {Promise<WeeklyActivity[]>}
+ */
+export async function fetchCommitActivity(owner, repo, timeout = 8000) {
+  const url = buildUrl(`/repos/${owner}/${repo}/stats/commit_activity`);
+  const response = await fetchWithTimeout(url, timeout);
+  const data = await response.json();
+
+  if (!Array.isArray(data)) return [];
+
+  return data.slice(-13).map((entry) => ({
+    week: new Date(entry.week * 1000).toISOString().split('T')[0],
+    totalCommits: entry.total ?? 0,
+    byAuthor: {},
+  }));
+}
+
+// ---------------------------------------------------------------------------
+// fetchAvatarUrl
+// ---------------------------------------------------------------------------
+
+/**
+ * Busca a URL do avatar de um usuário do GitHub.
+ *
+ * @param {string} username
+ * @param {number} [timeout=8000]
+ * @returns {Promise<string>}
+ */
+export async function fetchAvatarUrl(username, timeout = 8000) {
+  const url = buildUrl(`/users/${username}`);
+  const response = await fetchWithTimeout(url, timeout);
+  const data = await response.json();
+  return data.avatar_url;
+}
