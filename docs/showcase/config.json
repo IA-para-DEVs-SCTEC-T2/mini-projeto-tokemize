@@ -101,21 +101,20 @@
     "projectNumber": 5,
     "totalCards": 17,
     "cardsByStatus": {
-      "Revision": 2,
+      "Revision": 3,
       "Done": 2,
-      "Todo": 12,
-      "In Progress": 1
+      "Todo": 12
     },
-    "lastUpdatedAt": "2026-05-02T13:13:05.562139+00:00"
+    "lastUpdatedAt": "2026-05-02T13:49:43.095590+00:00"
   },
   "repoStats": {
-    "totalCommits": 44,
+    "totalCommits": 45,
     "openPRs": 2,
     "closedPRs": 17,
     "contributors": 6,
     "activeBranches": 6,
-    "lastCommitAt": "2026-05-02T07:45:03Z",
-    "fetchedAt": "2026-05-02T13:13:05.562246+00:00"
+    "lastCommitAt": "2026-05-02T13:13:05Z",
+    "fetchedAt": "2026-05-02T13:49:43.095686+00:00"
   },
   "contributors": [
     {
