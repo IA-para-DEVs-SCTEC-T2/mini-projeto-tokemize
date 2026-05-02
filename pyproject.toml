@@ -1,4 +1,40 @@
 [build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.backends.legacy:build"
+
+[project]
+name = "tokemize"
+version = "0.1.0"
+description = "Agente inteligente de otimização de contexto para LLMs"
+requires-python = ">=3.11"
+dependencies = [
+    "tree-sitter==0.25.2",
+    "tree-sitter-python",
+    "tree-sitter-java",
+    "tree-sitter-javascript",
+    "tree-sitter-typescript",
+    "python-dotenv",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest==8.3.5",
+    "pytest-cov==6.1.0",
+    "hypothesis>=6.100.0",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = "-v --tb=short"
+
+[tool.coverage.run]
+source = ["src/tokemize"]
+omit = ["tests/*"]
+[build-system]
 requires = ["setuptools>=68.0.0", "wheel>=0.41.0"]
 build-backend = "setuptools.backends.legacy:build"
 
