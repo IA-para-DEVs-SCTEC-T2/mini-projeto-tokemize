@@ -42,7 +42,7 @@
     {
       "id": "parser",
       "label": "Parser",
-      "status": "planned"
+      "status": "in_progress"
     },
     {
       "id": "indexer",
@@ -102,18 +102,19 @@
     "totalCards": 17,
     "cardsByStatus": {
       "Done": 2,
-      "Todo": 15
+      "Todo": 14,
+      "In Progress": 1
     },
-    "lastUpdatedAt": "2026-05-02T02:48:26.686502+00:00"
+    "lastUpdatedAt": "2026-05-02T02:53:16.585792+00:00"
   },
   "repoStats": {
-    "totalCommits": 39,
+    "totalCommits": 40,
     "openPRs": 0,
     "closedPRs": 17,
     "contributors": 5,
     "activeBranches": 5,
-    "lastCommitAt": "2026-05-02T02:47:37Z",
-    "fetchedAt": "2026-05-02T02:48:26.686561+00:00"
+    "lastCommitAt": "2026-05-02T02:48:26Z",
+    "fetchedAt": "2026-05-02T02:53:16.585882+00:00"
   },
   "contributors": [
     {
