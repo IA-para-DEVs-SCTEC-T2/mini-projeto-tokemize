@@ -61,13 +61,10 @@ function createStatCard(label, value) {
  */
 export function renderStats(stats, stale, boardMetrics = null) {
   const grid = document.getElementById('stats-grid');
-  if (!grid) {
-    return;
-  }
+  if (!grid) return;
 
   grid.innerHTML = '';
 
-  // Estado de erro: stats indisponível
   if (stats === null) {
     const errorEl = document.createElement('div');
     errorEl.className = 'stats-error';
@@ -76,7 +73,6 @@ export function renderStats(stats, stale, boardMetrics = null) {
     return;
   }
 
-  // Banner de dados desatualizados (antes dos cards)
   if (stale) {
     const banner = document.createElement('div');
     banner.className = 'stats-stale-banner';
@@ -85,8 +81,19 @@ export function renderStats(stats, stale, boardMetrics = null) {
     grid.appendChild(banner);
   }
 
-  // Cards de estatísticas do repositório (via API em tempo real)
-  const repoCards = [
+  // ── Bloco: Repositório ────────────────────────────────────────────────────
+  const repoBlock = document.createElement('div');
+  repoBlock.className = 'stats-block';
+
+  const repoHeading = document.createElement('h3');
+  repoHeading.className = 'stats-block-title';
+  repoHeading.textContent = 'Repositório';
+  repoBlock.appendChild(repoHeading);
+
+  const repoCards = document.createElement('div');
+  repoCards.className = 'stats-cards-row';
+
+  const repoData = [
     { label: 'Total de Commits',  value: stats.totalCommits },
     { label: 'PRs Abertos',       value: stats.openPRs },
     { label: 'PRs Fechados',      value: stats.closedPRs },
@@ -95,39 +102,43 @@ export function renderStats(stats, stale, boardMetrics = null) {
     { label: 'Último Commit',     value: formatDate(stats.lastCommitAt) },
   ];
 
-  for (const { label, value } of repoCards) {
-    grid.appendChild(createStatCard(label, value));
+  for (const { label, value } of repoData) {
+    repoCards.appendChild(createStatCard(label, value));
   }
 
-  // Cards do Project Board (via config.json atualizado pelo workflow)
+  repoBlock.appendChild(repoCards);
+  grid.appendChild(repoBlock);
+
+  // ── Bloco: Project Board ──────────────────────────────────────────────────
   if (boardMetrics && boardMetrics.totalCards > 0) {
-    const separator = document.createElement('div');
-    separator.className = 'stats-section-separator';
+    const boardBlock = document.createElement('div');
+    boardBlock.className = 'stats-block';
 
-    const boardTitle = document.createElement('h3');
-    boardTitle.className = 'stats-section-title';
-    boardTitle.textContent = boardMetrics.projectTitle
-      ? `Board: ${boardMetrics.projectTitle}`
+    const boardHeading = document.createElement('h3');
+    boardHeading.className = 'stats-block-title';
+    boardHeading.textContent = boardMetrics.projectTitle
+      ? `Board · ${boardMetrics.projectTitle}`
       : 'Project Board';
+    boardBlock.appendChild(boardHeading);
 
-    grid.appendChild(separator);
-    grid.appendChild(boardTitle);
+    const boardCards = document.createElement('div');
+    boardCards.className = 'stats-cards-row';
 
-    // Card com total de itens no board
-    grid.appendChild(createStatCard('Total de Cards', boardMetrics.totalCards));
+    boardCards.appendChild(createStatCard('Total de Cards', boardMetrics.totalCards));
 
-    // Um card por status (ex: "Todo", "In Progress", "Done")
-    const statusEntries = Object.entries(boardMetrics.cardsByStatus ?? {});
-    for (const [status, count] of statusEntries) {
-      grid.appendChild(createStatCard(status, count));
+    for (const [status, count] of Object.entries(boardMetrics.cardsByStatus ?? {})) {
+      boardCards.appendChild(createStatCard(status, count));
     }
 
-    // Timestamp da última atualização do board
+    boardBlock.appendChild(boardCards);
+
     if (boardMetrics.lastUpdatedAt) {
       const updatedEl = document.createElement('p');
       updatedEl.className = 'board-updated-at';
-      updatedEl.textContent = `Board atualizado em: ${formatDate(boardMetrics.lastUpdatedAt)}`;
-      grid.appendChild(updatedEl);
+      updatedEl.textContent = `Atualizado em ${formatDate(boardMetrics.lastUpdatedAt)}`;
+      boardBlock.appendChild(updatedEl);
     }
+
+    grid.appendChild(boardBlock);
   }
 }
