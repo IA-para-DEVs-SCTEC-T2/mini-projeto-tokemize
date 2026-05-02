@@ -11,31 +11,203 @@
     "Respostas imprecisas e alucinações",
     "Processamento ineficiente"
   ],
-  "pipeline": ["Entrada Bruta", "Tokemize", "Entrada Otimizada"],
+  "pipeline": [
+    "Entrada Bruta",
+    "Tokemize",
+    "Entrada Otimizada"
+  ],
   "techStack": [
-    { "name": "Python", "url": "https://docs.python.org/3/" },
-    { "name": "Tree-sitter", "url": "https://tree-sitter.github.io/tree-sitter/" },
-    { "name": "FAISS", "url": "https://faiss.ai/index.html" },
-    { "name": "OpenAI API", "url": "https://platform.openai.com/docs" },
-    { "name": "Anthropic API", "url": "https://docs.anthropic.com" }
+    {
+      "name": "Python",
+      "url": "https://docs.python.org/3/"
+    },
+    {
+      "name": "Tree-sitter",
+      "url": "https://tree-sitter.github.io/tree-sitter/"
+    },
+    {
+      "name": "FAISS",
+      "url": "https://faiss.ai/index.html"
+    },
+    {
+      "name": "OpenAI API",
+      "url": "https://platform.openai.com/docs"
+    },
+    {
+      "name": "Anthropic API",
+      "url": "https://docs.anthropic.com"
+    }
   ],
   "modules": [
-    { "id": "parser",                  "label": "Parser",          "status": "in_progress" },
-    { "id": "indexer",                 "label": "Indexer",         "status": "in_progress" },
-    { "id": "selector",                "label": "Selector",        "status": "planned"     },
-    { "id": "optimizer",               "label": "Optimizer",       "status": "planned"     },
-    { "id": "integrations/llm",        "label": "LLM Integration", "status": "in_progress" },
-    { "id": "integrations/embeddings", "label": "Embeddings",      "status": "planned"     }
+    {
+      "id": "parser",
+      "label": "Parser",
+      "status": "done"
+    },
+    {
+      "id": "indexer",
+      "label": "Indexer",
+      "status": "planned"
+    },
+    {
+      "id": "selector",
+      "label": "Selector",
+      "status": "done"
+    },
+    {
+      "id": "optimizer",
+      "label": "Optimizer",
+      "status": "planned"
+    },
+    {
+      "id": "integrations/llm",
+      "label": "LLM Integration",
+      "status": "planned"
+    },
+    {
+      "id": "integrations/embeddings",
+      "label": "Embeddings",
+      "status": "planned"
+    }
   ],
   "team": [
-    { "name": "Eneri da Costa Junior",     "github": "jrcosta"          },
-    { "name": "Guilherme Valerio Mertens", "github": "gvmertens"        },
-    { "name": "Paulo Sergio",              "github": "PauloSergioLR"    },
-    { "name": "Samuel Magalhães Marques", "github": "samuelmarquesgit" },
-    { "name": "Eduardo Notari",            "github": "edunotari"        }
+    {
+      "name": "Eneri da Costa Junior",
+      "github": "jrcosta"
+    },
+    {
+      "name": "Guilherme Valerio Mertens",
+      "github": "gvmertens"
+    },
+    {
+      "name": "Paulo Sergio",
+      "github": "PauloSergioLR"
+    },
+    {
+      "name": "Samuel Magalhães Marques",
+      "github": "samuelmarquesgit"
+    },
+    {
+      "name": "Eduardo Notari",
+      "github": "edunotari"
+    }
   ],
   "links": {
     "repo": "https://github.com/IA-para-DEVs-SCTEC-T2/mini-projeto-tokemize",
     "readme": "https://github.com/IA-para-DEVs-SCTEC-T2/mini-projeto-tokemize#readme"
-  }
+  },
+  "boardMetrics": {
+    "projectTitle": "MiniProjeto",
+    "projectNumber": 5,
+    "totalCards": 16,
+    "cardsByStatus": {
+      "Revision": 1,
+      "Done": 7,
+      "Todo": 8
+    },
+    "lastUpdatedAt": "2026-05-02T21:13:05.052596+00:00"
+  },
+  "repoStats": {
+    "totalCommits": 53,
+    "openPRs": 2,
+    "closedPRs": 22,
+    "contributors": 7,
+    "activeBranches": 9,
+    "lastCommitAt": "2026-05-02T20:47:57Z",
+    "fetchedAt": "2026-05-02T21:13:05.052698+00:00"
+  },
+  "contributors": [
+    {
+      "avatar_url": "https://avatars.githubusercontent.com/u/22981568?v=4",
+      "contributions": 28,
+      "html_url": "https://github.com/jrcosta",
+      "login": "jrcosta"
+    },
+    {
+      "avatar_url": "https://avatars.githubusercontent.com/in/15368?v=4",
+      "contributions": 9,
+      "html_url": "https://github.com/apps/github-actions",
+      "login": "github-actions[bot]"
+    },
+    {
+      "avatar_url": "https://avatars.githubusercontent.com/u/14351143?v=4",
+      "contributions": 5,
+      "html_url": "https://github.com/gvmertens",
+      "login": "gvmertens"
+    },
+    {
+      "avatar_url": "https://avatars.githubusercontent.com/u/65471872?v=4",
+      "contributions": 4,
+      "html_url": "https://github.com/edunotari",
+      "login": "edunotari"
+    },
+    {
+      "avatar_url": "https://avatars.githubusercontent.com/u/85140484?v=4",
+      "contributions": 3,
+      "html_url": "https://github.com/PauloSergioLR",
+      "login": "PauloSergioLR"
+    },
+    {
+      "avatar_url": "https://avatars.githubusercontent.com/u/237599657?v=4",
+      "contributions": 2,
+      "html_url": "https://github.com/samuelmarquesgit",
+      "login": "samuelmarquesgit"
+    },
+    {
+      "avatar_url": "https://avatars.githubusercontent.com/in/1143301?v=4",
+      "contributions": 2,
+      "html_url": "https://github.com/apps/copilot-swe-agent",
+      "login": "Copilot"
+    }
+  ],
+  "prAuthors": [
+    {
+      "login": "jrcosta",
+      "total": 13,
+      "open": 1,
+      "closed": 12,
+      "avatar_url": "https://avatars.githubusercontent.com/u/22981568?v=4",
+      "html_url": "https://github.com/jrcosta"
+    },
+    {
+      "login": "gvmertens",
+      "total": 3,
+      "open": 0,
+      "closed": 3,
+      "avatar_url": "https://avatars.githubusercontent.com/u/14351143?v=4",
+      "html_url": "https://github.com/gvmertens"
+    },
+    {
+      "login": "samuelmarquesgit",
+      "total": 3,
+      "open": 1,
+      "closed": 2,
+      "avatar_url": "https://avatars.githubusercontent.com/u/237599657?v=4",
+      "html_url": "https://github.com/samuelmarquesgit"
+    },
+    {
+      "login": "PauloSergioLR",
+      "total": 2,
+      "open": 0,
+      "closed": 2,
+      "avatar_url": "https://avatars.githubusercontent.com/u/85140484?v=4",
+      "html_url": "https://github.com/PauloSergioLR"
+    },
+    {
+      "login": "edunotari",
+      "total": 2,
+      "open": 0,
+      "closed": 2,
+      "avatar_url": "https://avatars.githubusercontent.com/u/65471872?v=4",
+      "html_url": "https://github.com/edunotari"
+    },
+    {
+      "login": "Copilot",
+      "total": 1,
+      "open": 0,
+      "closed": 1,
+      "avatar_url": "https://avatars.githubusercontent.com/in/1143301?v=4",
+      "html_url": "https://github.com/apps/copilot-swe-agent"
+    }
+  ]
 }

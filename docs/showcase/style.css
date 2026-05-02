@@ -326,16 +326,44 @@ a:focus-visible {
 }
 
 .stats-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+}
+
+/* Bloco individual (Repositório / Board) */
+.stats-block {
+  display: flex;
+  flex-direction: column;
   gap: var(--space-4);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  padding: var(--space-6);
+}
+
+.stats-block-title {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--color-text-secondary);
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+}
+
+/* Grade de cards dentro de cada bloco */
+.stats-cards-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: var(--space-3);
 }
 
 .stat-card {
-  background-color: var(--color-surface);
+  background-color: var(--color-surface-alt);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
-  padding: var(--space-6);
+  padding: var(--space-5) var(--space-4);
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
@@ -355,17 +383,17 @@ a:focus-visible {
 }
 
 .stat-value {
-  font-size: var(--font-size-3xl);
+  font-size: var(--font-size-2xl);
   font-weight: var(--font-weight-bold);
   color: var(--color-text-primary);
   font-variant-numeric: tabular-nums;
   line-height: var(--line-height-tight);
 }
 
-.stat-stale-indicator {
+.board-updated-at {
   font-size: var(--font-size-xs);
-  color: var(--color-warning);
-  margin-top: var(--space-2);
+  color: var(--color-text-muted);
+  margin-top: var(--space-1);
 }
 
 .stats-stale-banner {
@@ -382,7 +410,6 @@ a:focus-visible {
 }
 
 .stats-error {
-  grid-column: 1 / -1;
   padding: var(--space-6);
   background-color: rgba(248, 81, 73, 0.08);
   border: 1px solid rgba(248, 81, 73, 0.25);
@@ -406,10 +433,76 @@ a:focus-visible {
   overflow-x: auto;
 }
 
-.graph-container svg {
-  min-width: 600px;
-  width: 100%;
-  height: auto;
+.contributors-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: var(--space-4);
+}
+
+.contributor-card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  background-color: var(--color-surface-alt);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  transition: border-color var(--transition-normal);
+}
+
+.contributor-card:hover {
+  border-color: var(--contributor-color, var(--color-accent));
+}
+
+.contributor-avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-full);
+  border: 2px solid var(--contributor-color, var(--color-border));
+  object-fit: cover;
+  flex-shrink: 0;
+  background-color: var(--color-surface);
+}
+
+.contributor-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.contributor-name {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  text-decoration: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.contributor-name:hover {
+  color: var(--contributor-color, var(--color-accent));
+}
+
+.contributor-commits {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+}
+
+.contributor-bar-track {
+  height: 4px;
+  background-color: var(--color-border);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+  margin-top: var(--space-1);
+}
+
+.contributor-bar-fill {
+  height: 100%;
+  border-radius: var(--radius-full);
+  transition: width 0.6s ease;
 }
 
 .graph-tooltip {
@@ -704,7 +797,7 @@ a:focus-visible {
     font-size: clamp(3rem, 5vw, 4.5rem);
   }
 
-  .stats-grid {
+  .stats-cards-row {
     grid-template-columns: repeat(6, 1fr);
   }
 

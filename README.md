@@ -26,6 +26,8 @@ O fluxo da solução foi projetado para atuar como um middleware inteligente:
 
 `Usuário` ➔ `Tokemize` ➔ `Seleção` ➔ `Resumo` ➔ `Otimização` ➔ `LLM`
 
+Para detalhes completos da arquitetura, consulte [docs/architecture.md](docs/architecture.md).
+
 ## 🧩 Componentes do Sistema
 
 - **Análise de Repositório:** Mapeamento completo da estrutura do código.
@@ -39,6 +41,71 @@ O fluxo da solução foi projetado para atuar como um middleware inteligente:
 - **[Tree-sitter](https://tree-sitter.github.io/tree-sitter/):** Análise Sintática do código.
 - **[FAISS](https://faiss.ai/index.html):** Indexação Vetorial para buscas eficientes.
 - **APIs de LLM:** Integrações com serviços como OpenAI, Anthropic e [Groq](https://console.groq.com/docs/overview).
+
+Para detalhes e justificativas de cada tecnologia, consulte [docs/technologies.md](docs/technologies.md).
+
+## 🚀 Instalação e Execução
+
+### Pré-requisitos
+
+- Python 3.10 ou superior
+- [pip](https://pip.pypa.io/en/stable/)
+
+### Instalação
+
+```bash
+# Clone o repositório
+git clone https://github.com/IA-para-DEVs-SCTEC-T2/mini-projeto-tokemize.git
+cd mini-projeto-tokemize
+
+# (Recomendado) Crie e ative um ambiente virtual
+python -m venv .venv
+source .venv/bin/activate   # Linux/macOS
+# .venv\Scripts\activate    # Windows
+
+# Instale as dependências
+pip install -e .
+```
+
+### Executando os testes
+
+```bash
+# Testes Python
+python -m pytest tests/
+
+# Testes do showcase (requer Node.js 18+)
+cd docs/showcase
+npm install
+npm test
+```
+
+## 💻 Exemplo de Uso
+
+> **Nota:** o módulo principal ainda está em desenvolvimento. O exemplo abaixo ilustra o fluxo previsto.
+
+```python
+from tokemize import Tokemize
+
+# Inicializa o agente apontando para um repositório local
+agent = Tokemize(repo_path="./meu-projeto")
+
+# Envia uma query — o Tokemize seleciona e otimiza o contexto automaticamente
+response = agent.query(
+    prompt="Como funciona a autenticação de usuários neste projeto?",
+    llm_provider="openai",
+)
+
+print(response)
+```
+
+## 📚 Documentação
+
+| Documento | Descrição |
+|---|---|
+| [docs/architecture.md](docs/architecture.md) | Fluxo e componentes da arquitetura |
+| [docs/technologies.md](docs/technologies.md) | Stack tecnológica e justificativas |
+| [docs/roadmap.md](docs/roadmap.md) | Progresso dos módulos e próximas entregas |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | Guia de contribuição (branches e commits) |
 
 ## 👥 Equipe
 

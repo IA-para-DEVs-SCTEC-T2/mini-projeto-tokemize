@@ -2,10 +2,13 @@ name: Update Board Metrics
 
 on:
   schedule:
-    # Roda a cada 6 horas
     - cron: '0 */6 * * *'
   workflow_dispatch:
-    # Permite execução manual pelo GitHub Actions UI
+  push:
+    branches: [main]
+    paths:
+      # Não re-disparar quando o próprio workflow atualiza o config.json
+      - '!docs/showcase/config.json'
 
 concurrency:
   group: update-board-metrics
@@ -13,9 +16,9 @@ concurrency:
 
 jobs:
   update-metrics:
-    name: Fetch Project Board Metrics & Update config.json
+    name: Fetch All Metrics & Update config.json
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
 
     permissions:
       contents: write
@@ -25,28 +28,64 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          # Usa o PAT para que o commit dispare o deploy.yml
           token: ${{ secrets.PROJECT_TOKEN }}
 
-      - name: Fetch board metrics via GraphQL
-        id: board
+      - name: Fetch all metrics via REST + GraphQL
+        id: metrics
         env:
           GH_TOKEN: ${{ secrets.PROJECT_TOKEN }}
-          OWNER: ${{ github.repository_owner }}
-          REPO: ${{ github.event.repository.name }}
+          OWNER: IA-para-DEVs-SCTEC-T2
+          REPO: mini-projeto-tokemize
+          PROJECT_NUMBER: 5
         run: |
-          # ── Busca o primeiro Project v2 do repositório ──────────────────────
-          PROJECT_QUERY=$(cat <<'EOF'
-          query($owner: String!, $repo: String!) {
-            repository(owner: $owner, name: $repo) {
-              projectsV2(first: 1) {
-                nodes {
-                  id
+          set -e
+
+          # ── Stats do repositório (REST) ──────────────────────────────────
+          COMMITS=$(gh api "/repos/$OWNER/$REPO/commits?per_page=1" \
+            --include --silent 2>/dev/null | \
+            grep -i '^link:' | grep -oP 'page=\K\d+(?=>; rel="last")' || echo "1")
+
+          OPEN_PRS=$(gh api "/repos/$OWNER/$REPO/pulls?state=open&per_page=1" \
+            --include --silent 2>/dev/null | \
+            grep -i '^link:' | grep -oP 'page=\K\d+(?=>; rel="last")' || echo "0")
+
+          CLOSED_PRS=$(gh api "/repos/$OWNER/$REPO/pulls?state=closed&per_page=1" \
+            --include --silent 2>/dev/null | \
+            grep -i '^link:' | grep -oP 'page=\K\d+(?=>; rel="last")' || echo "0")
+
+          BRANCHES=$(gh api "/repos/$OWNER/$REPO/branches?per_page=1" \
+            --include --silent 2>/dev/null | \
+            grep -i '^link:' | grep -oP 'page=\K\d+(?=>; rel="last")' || echo "1")
+
+          LAST_COMMIT=$(gh api "/repos/$OWNER/$REPO/commits?sha=main&per_page=1" \
+            --jq '.[0].commit.author.date' 2>/dev/null || echo "")
+
+          # ── Contributors com avatares (REST) ─────────────────────────────
+          CONTRIBUTORS=$(gh api "/repos/$OWNER/$REPO/contributors?per_page=30" \
+            --jq '[.[] | {login: .login, contributions: .contributions, avatar_url: .avatar_url, html_url: .html_url}]' \
+            2>/dev/null || echo "[]")
+
+          CONTRIBUTORS_COUNT=$(echo "$CONTRIBUTORS" | python3 -c "import json,sys; print(len(json.load(sys.stdin)))" 2>/dev/null || echo "0")
+
+          # ── PRs por autor (REST) ─────────────────────────────────────────
+          ALL_PRS=$(gh api "/repos/$OWNER/$REPO/pulls?state=all&per_page=100" \
+            --jq '[.[] | {login: .user.login, state: .state, avatar_url: .user.avatar_url, html_url: .user.html_url}]' \
+            2>/dev/null || echo "[]")
+
+          # ── Board metrics (GraphQL) ──────────────────────────────────────
+          BOARD_RESPONSE=$(gh api graphql -f query='
+            query($org: String!, $number: Int!) {
+              organization(login: $org) {
+                projectV2(number: $number) {
                   title
                   number
                   items(first: 100) {
                     totalCount
                     nodes {
+                      content {
+                        ... on Issue { title }
+                        ... on PullRequest { title }
+                      }
                       fieldValues(first: 10) {
                         nodes {
                           ... on ProjectV2ItemFieldSingleSelectValue {
@@ -59,103 +98,166 @@ jobs:
                   }
                 }
               }
-            }
-          }
-          EOF
-          )
+            }' \
+            -f org="$OWNER" \
+            -F number="$PROJECT_NUMBER" \
+            2>/dev/null || echo '{"data":{"organization":{"projectV2":null}}}')
 
-          RESPONSE=$(gh api graphql \
-            -f query="$PROJECT_QUERY" \
-            -f owner="$OWNER" \
-            -f repo="$REPO")
+          # Salva tudo em arquivos temporários para o Python ler
+          echo "$COMMITS"      > /tmp/commits.txt
+          echo "$OPEN_PRS"     > /tmp/open_prs.txt
+          echo "$CLOSED_PRS"   > /tmp/closed_prs.txt
+          echo "$BRANCHES"     > /tmp/branches.txt
+          echo "$LAST_COMMIT"  > /tmp/last_commit.txt
+          echo "$CONTRIBUTORS_COUNT" > /tmp/contributors_count.txt
+          echo "$CONTRIBUTORS" > /tmp/contributors.json
+          echo "$ALL_PRS"      > /tmp/all_prs.json
+          echo "$BOARD_RESPONSE" > /tmp/board.json
 
-          echo "graphql_response<<EOF" >> "$GITHUB_OUTPUT"
-          echo "$RESPONSE" >> "$GITHUB_OUTPUT"
-          echo "EOF" >> "$GITHUB_OUTPUT"
+          echo "Dados coletados com sucesso."
 
-      - name: Parse metrics and update config.json
-        env:
-          GRAPHQL_RESPONSE: ${{ steps.board.outputs.graphql_response }}
+      - name: Update config.json
         run: |
           python3 - <<'PYEOF'
-          import json
-          import os
-          import sys
+          import json, os
           from datetime import datetime, timezone
 
-          response_raw = os.environ.get("GRAPHQL_RESPONSE", "{}")
+          def read(path, default=""):
+              try:
+                  return open(path).read().strip()
+              except:
+                  return default
 
-          try:
-              response = json.loads(response_raw)
-          except json.JSONDecodeError as e:
-              print(f"::warning::Falha ao parsear resposta GraphQL: {e}")
-              sys.exit(0)
+          def read_json(path, default):
+              try:
+                  return json.loads(open(path).read())
+              except:
+                  return default
 
-          # ── Extrai dados do projeto ──────────────────────────────────────────
-          try:
-              projects = (
-                  response
-                  .get("data", {})
-                  .get("repository", {})
-                  .get("projectsV2", {})
-                  .get("nodes", [])
-              )
-          except AttributeError:
-              projects = []
+          # ── Lê dados coletados ───────────────────────────────────────────
+          total_commits    = int(read("/tmp/commits.txt", "1") or "1")
+          open_prs         = int(read("/tmp/open_prs.txt", "0") or "0")
+          closed_prs       = int(read("/tmp/closed_prs.txt", "0") or "0")
+          active_branches  = int(read("/tmp/branches.txt", "1") or "1")
+          last_commit_at   = read("/tmp/last_commit.txt", "")
+          contributors_cnt = int(read("/tmp/contributors_count.txt", "0") or "0")
+          contributors     = read_json("/tmp/contributors.json", [])
+          all_prs_raw      = read_json("/tmp/all_prs.json", [])
+          board_raw        = read_json("/tmp/board.json", {})
 
-          board_metrics = {
-              "projectTitle": None,
-              "projectNumber": None,
-              "totalCards": 0,
-              "cardsByStatus": {},
-              "lastUpdatedAt": datetime.now(timezone.utc).isoformat()
+          # ── PRs por autor ────────────────────────────────────────────────
+          pr_map = {}
+          for pr in all_prs_raw:
+              login = pr.get("login", "unknown")
+              if login not in pr_map:
+                  pr_map[login] = {
+                      "login": login,
+                      "total": 0, "open": 0, "closed": 0,
+                      "avatar_url": pr.get("avatar_url", ""),
+                      "html_url": pr.get("html_url", f"https://github.com/{login}")
+                  }
+              pr_map[login]["total"] += 1
+              if pr.get("state") == "open":
+                  pr_map[login]["open"] += 1
+              else:
+                  pr_map[login]["closed"] += 1
+          pr_authors = sorted(pr_map.values(), key=lambda x: -x["total"])
+
+          # ── Board metrics + status dos módulos ───────────────────────────
+          STATUS_MAP = {
+              "Todo": "planned", "In Progress": "in_progress",
+              "Blocked": "in_progress", "Revision": "in_progress", "Done": "done",
+          }
+          MODULE_KEYWORDS = {
+              "parser":                  ["tree-sitter", "tree sitter", "análise sintática", "analise sintatica", "parser"],
+              "indexer":                 ["faiss", "índice", "indice", "indexa", "indexer"],
+              "selector":                ["seletor", "seleção", "selecao", "selector", "ranqueamento", "contexto"],
+              "optimizer":               ["orquestrador", "pipeline", "optimizer", "otimizador"],
+              "integrations/llm":        ["llm", "openai", "anthropic", "summarizer", "api de llm"],
+              "integrations/embeddings": ["embedding", "vetorial", "geração de embeddings", "geracao"],
           }
 
-          if projects:
-              project = projects[0]
-              board_metrics["projectTitle"]  = project.get("title")
-              board_metrics["projectNumber"] = project.get("number")
-              board_metrics["totalCards"]    = project.get("items", {}).get("totalCount", 0)
+          project = (board_raw.get("data") or {}).get("organization", {}).get("projectV2") or {}
+          cards_by_status = {}
+          card_status_by_title = {}
 
-              # Conta cards por status (campo "Status" do board)
-              status_counts = {}
-              for item in project.get("items", {}).get("nodes", []):
-                  for field_value in item.get("fieldValues", {}).get("nodes", []):
-                      field_info = field_value.get("field", {})
-                      if field_info.get("name", "").lower() == "status":
-                          status_name = field_value.get("name", "Sem status")
-                          status_counts[status_name] = status_counts.get(status_name, 0) + 1
+          for item in (project.get("items") or {}).get("nodes", []):
+              content = item.get("content") or {}
+              title = (content.get("title") or "").lower()
+              for fv in (item.get("fieldValues") or {}).get("nodes", []):
+                  field = fv.get("field") or {}
+                  if (field.get("name") or "").lower() == "status":
+                      bs = fv.get("name", "")
+                      cards_by_status[bs] = cards_by_status.get(bs, 0) + 1
+                      if title:
+                          card_status_by_title[title] = STATUS_MAP.get(bs, "planned")
 
-              board_metrics["cardsByStatus"] = status_counts
-          else:
-              print("::warning::Nenhum Project v2 encontrado no repositório.")
+          def find_status(module_id):
+              for title, status in card_status_by_title.items():
+                  for kw in MODULE_KEYWORDS.get(module_id, []):
+                      if kw in title:
+                          return status
+              return None
 
-          # ── Atualiza config.json ─────────────────────────────────────────────
+          board_metrics = {
+              "projectTitle":  project.get("title"),
+              "projectNumber": project.get("number"),
+              "totalCards":    (project.get("items") or {}).get("totalCount", 0),
+              "cardsByStatus": cards_by_status,
+              "lastUpdatedAt": datetime.now(timezone.utc).isoformat(),
+          }
+
+          # ── Atualiza config.json ─────────────────────────────────────────
           config_path = "docs/showcase/config.json"
           with open(config_path, "r", encoding="utf-8") as f:
               config = json.load(f)
 
+          # Stats
+          config["repoStats"] = {
+              "totalCommits":  total_commits,
+              "openPRs":       open_prs,
+              "closedPRs":     closed_prs,
+              "contributors":  contributors_cnt,
+              "activeBranches": active_branches,
+              "lastCommitAt":  last_commit_at,
+              "fetchedAt":     datetime.now(timezone.utc).isoformat(),
+          }
+
+          # Contributors com avatares
+          config["contributors"] = contributors
+
+          # PRs por autor
+          config["prAuthors"] = pr_authors
+
+          # Board metrics + módulos
           config["boardMetrics"] = board_metrics
+          for module in config.get("modules", []):
+              s = find_status(module["id"])
+              if s:
+                  module["status"] = s
+                  print(f"  {module['id']} → {s}")
+              else:
+                  print(f"  {module['id']} → {module['status']} (mantido)")
 
           with open(config_path, "w", encoding="utf-8") as f:
               json.dump(config, f, ensure_ascii=False, indent=2)
               f.write("\n")
 
-          print(f"config.json atualizado com boardMetrics: {json.dumps(board_metrics, ensure_ascii=False)}")
+          print(f"\nStats: {json.dumps(config['repoStats'], ensure_ascii=False)}")
+          print(f"Contributors: {len(contributors)}")
+          print(f"PR authors: {len(pr_authors)}")
+          print(f"Board: {json.dumps(board_metrics, ensure_ascii=False)}")
           PYEOF
 
       - name: Commit updated config.json
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-
           git add docs/showcase/config.json
-
-          # Só commita se houver mudança real
           if git diff --cached --quiet; then
-            echo "Nenhuma alteração nas métricas. Nada a commitar."
+            echo "Sem alterações."
           else
-            git commit -m "chore: update board metrics [skip ci]"
+            git commit -m "chore: sync all metrics from GitHub API"
             git push origin main
-            echo "config.json atualizado e enviado para main."
+            echo "config.json atualizado."
           fi
