@@ -580,3 +580,89 @@ class TestArtifactModel:
         assert a.name == "my_func"
         assert a.type == "function"
         assert a.file_path == ""  # default
+
+
+# ---------------------------------------------------------------------------
+# Teste de import público — src/tokemize/tree_sitter_analyzer.py
+# ---------------------------------------------------------------------------
+
+
+class TestPublicImport:
+    """Garante que o entregável src/tokemize/tree_sitter_analyzer.py está acessível."""
+
+    def test_import_from_tokemize_tree_sitter_analyzer(self) -> None:
+        """TreeSitterAnalyzer deve ser importável via tokemize.tree_sitter_analyzer."""
+        from tokemize.tree_sitter_analyzer import TreeSitterAnalyzer as TSA  # noqa: PLC0415
+        assert TSA is TreeSitterAnalyzer
+
+    def test_unsupported_language_error_importable(self) -> None:
+        """UnsupportedLanguageError deve ser importável via tokemize.tree_sitter_analyzer."""
+        from tokemize.tree_sitter_analyzer import UnsupportedLanguageError as ULE  # noqa: PLC0415
+        assert ULE is UnsupportedLanguageError
+
+    def test_analyzer_via_public_module(self, tmp_path: Path) -> None:
+        """Analyzer importado via tokemize.tree_sitter_analyzer deve funcionar normalmente."""
+        from tokemize.tree_sitter_analyzer import TreeSitterAnalyzer as TSA  # noqa: PLC0415
+
+        f = _write(tmp_path, "main.py", "def hello(): pass\n")
+        artifacts = TSA().analyze(f)
+        assert len(artifacts) == 1
+        assert artifacts[0].name == "hello"
+
+
+# ---------------------------------------------------------------------------
+# Critério 7 — resultado consumível pelo próximo módulo
+# ---------------------------------------------------------------------------
+
+
+class TestConsumableResult:
+    """Garante que os artefatos podem ser consumidos pelo próximo módulo (Indexer)."""
+
+    def test_artifact_has_to_dict(self, analyzer: TreeSitterAnalyzer, tmp_path: Path) -> None:
+        """Artifact deve expor to_dict() para integração com módulos downstream."""
+        f = _write(tmp_path, "mod.py", "def foo(): pass\n")
+        artifacts = analyzer.analyze(f)
+        assert len(artifacts) == 1
+        d = artifacts[0].to_dict()
+        assert isinstance(d, dict)
+
+    def test_to_dict_contains_all_fields(self, analyzer: TreeSitterAnalyzer, tmp_path: Path) -> None:
+        """to_dict() deve conter todos os campos necessários para o próximo módulo."""
+        f = _write(tmp_path, "mod.py", "def foo(): pass\n")
+        artifact = analyzer.analyze(f)[0]
+        d = artifact.to_dict()
+        required_keys = {"name", "type", "start_line", "end_line", "language", "content", "file_path"}
+        assert required_keys == set(d.keys())
+
+    def test_to_dict_is_json_serializable(self, analyzer: TreeSitterAnalyzer, tmp_path: Path) -> None:
+        """to_dict() deve produzir um dicionário serializável em JSON."""
+        import json  # noqa: PLC0415
+        f = _write(tmp_path, "mod.py", "def foo(): pass\n")
+        artifact = analyzer.analyze(f)[0]
+        json_str = json.dumps(artifact.to_dict())
+        assert isinstance(json_str, str)
+        restored = json.loads(json_str)
+        assert restored["name"] == artifact.name
+        assert restored["type"] == artifact.type
+
+    def test_analyze_many_result_all_consumable(self, analyzer: TreeSitterAnalyzer, tmp_path: Path) -> None:
+        """Todos os artefatos de analyze_many() devem ser consumíveis via to_dict()."""
+        f1 = _write(tmp_path, "a.py", "def func_a(): pass\n")
+        f2 = _write(tmp_path, "b.py", "class ClassB: pass\n")
+        artifacts = analyzer.analyze_many([f1, f2])
+        for a in artifacts:
+            d = a.to_dict()
+            assert d["name"] in ("func_a", "ClassB")
+            assert d["language"] == "python"
+
+    def test_unsupported_file_ignored_safely(self, analyzer: TreeSitterAnalyzer, tmp_path: Path) -> None:
+        """Arquivo não suportado em analyze_many() não deve quebrar e retorna lista válida."""
+        py_file = _write(tmp_path, "valid.py", "def ok(): pass\n")
+        rb_file = _write(tmp_path, "invalid.rb", "puts 'hi'\n")
+        xml_file = _write(tmp_path, "data.xml", "<root/>\n")
+
+        artifacts = analyzer.analyze_many([py_file, rb_file, xml_file])
+        assert len(artifacts) == 1
+        assert artifacts[0].name == "ok"
+        # Resultado é consumível normalmente
+        assert artifacts[0].to_dict()["type"] == "function"

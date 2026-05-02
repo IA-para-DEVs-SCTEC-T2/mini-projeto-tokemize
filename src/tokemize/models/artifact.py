@@ -1,6 +1,10 @@
 """Modelo de dados para artefatos extraídos do código-fonte."""
 
+from __future__ import annotations
+
+import dataclasses
 from dataclasses import dataclass
+from typing import Any
 
 
 @dataclass
@@ -41,3 +45,26 @@ class Artifact:
             raise ValueError(
                 f"Tipo inválido '{self.type}'. Tipos válidos: {valid_types}"
             )
+
+    def to_dict(self) -> dict[str, Any]:
+        """Serializa o artefato para um dicionário consumível pelo próximo módulo.
+
+        Permite integração direta com o Indexer, Selector e qualquer camada
+        downstream que precise de uma representação estruturada do artefato.
+
+        Returns:
+            Dicionário com todos os campos do artefato.
+
+        Example:
+            >>> artifact.to_dict()
+            {
+                "name": "my_func",
+                "type": "function",
+                "start_line": 1,
+                "end_line": 5,
+                "language": "python",
+                "content": "def my_func(): ...",
+                "file_path": "src/module.py"
+            }
+        """
+        return dataclasses.asdict(self)
