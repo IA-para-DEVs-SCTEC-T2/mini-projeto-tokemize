@@ -30,3 +30,38 @@ testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.backends.legacy:build"
+
+[project]
+name = "tokemize"
+version = "0.1.0"
+description = "Agente inteligente de otimização de contexto para LLMs"
+requires-python = ">=3.11"
+dependencies = [
+    "tree-sitter==0.25.2",
+    "tree-sitter-python",
+    "tree-sitter-java",
+    "tree-sitter-javascript",
+    "tree-sitter-typescript",
+    "python-dotenv",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest==8.3.5",
+    "pytest-cov==6.1.0",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = "-v --tb=short"
+
+[tool.coverage.run]
+source = ["src/tokemize"]
+omit = ["tests/*"]

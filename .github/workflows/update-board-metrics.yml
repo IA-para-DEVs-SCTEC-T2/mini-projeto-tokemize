@@ -1,0 +1,161 @@
+name: Update Board Metrics
+
+on:
+  schedule:
+    # Roda a cada 6 horas
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
+    # Permite execução manual pelo GitHub Actions UI
+
+concurrency:
+  group: update-board-metrics
+  cancel-in-progress: true
+
+jobs:
+  update-metrics:
+    name: Fetch Project Board Metrics & Update config.json
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          # Usa o PAT para que o commit dispare o deploy.yml
+          token: ${{ secrets.PROJECT_TOKEN }}
+
+      - name: Fetch board metrics via GraphQL
+        id: board
+        env:
+          GH_TOKEN: ${{ secrets.PROJECT_TOKEN }}
+          OWNER: ${{ github.repository_owner }}
+          REPO: ${{ github.event.repository.name }}
+        run: |
+          # ── Busca o primeiro Project v2 do repositório ──────────────────────
+          PROJECT_QUERY=$(cat <<'EOF'
+          query($owner: String!, $repo: String!) {
+            repository(owner: $owner, name: $repo) {
+              projectsV2(first: 1) {
+                nodes {
+                  id
+                  title
+                  number
+                  items(first: 100) {
+                    totalCount
+                    nodes {
+                      fieldValues(first: 10) {
+                        nodes {
+                          ... on ProjectV2ItemFieldSingleSelectValue {
+                            name
+                            field { ... on ProjectV2SingleSelectField { name } }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+          EOF
+          )
+
+          RESPONSE=$(gh api graphql \
+            -f query="$PROJECT_QUERY" \
+            -f owner="$OWNER" \
+            -f repo="$REPO")
+
+          echo "graphql_response<<EOF" >> "$GITHUB_OUTPUT"
+          echo "$RESPONSE" >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
+
+      - name: Parse metrics and update config.json
+        env:
+          GRAPHQL_RESPONSE: ${{ steps.board.outputs.graphql_response }}
+        run: |
+          python3 - <<'PYEOF'
+          import json
+          import os
+          import sys
+          from datetime import datetime, timezone
+
+          response_raw = os.environ.get("GRAPHQL_RESPONSE", "{}")
+
+          try:
+              response = json.loads(response_raw)
+          except json.JSONDecodeError as e:
+              print(f"::warning::Falha ao parsear resposta GraphQL: {e}")
+              sys.exit(0)
+
+          # ── Extrai dados do projeto ──────────────────────────────────────────
+          try:
+              projects = (
+                  response
+                  .get("data", {})
+                  .get("repository", {})
+                  .get("projectsV2", {})
+                  .get("nodes", [])
+              )
+          except AttributeError:
+              projects = []
+
+          board_metrics = {
+              "projectTitle": None,
+              "projectNumber": None,
+              "totalCards": 0,
+              "cardsByStatus": {},
+              "lastUpdatedAt": datetime.now(timezone.utc).isoformat()
+          }
+
+          if projects:
+              project = projects[0]
+              board_metrics["projectTitle"]  = project.get("title")
+              board_metrics["projectNumber"] = project.get("number")
+              board_metrics["totalCards"]    = project.get("items", {}).get("totalCount", 0)
+
+              # Conta cards por status (campo "Status" do board)
+              status_counts = {}
+              for item in project.get("items", {}).get("nodes", []):
+                  for field_value in item.get("fieldValues", {}).get("nodes", []):
+                      field_info = field_value.get("field", {})
+                      if field_info.get("name", "").lower() == "status":
+                          status_name = field_value.get("name", "Sem status")
+                          status_counts[status_name] = status_counts.get(status_name, 0) + 1
+
+              board_metrics["cardsByStatus"] = status_counts
+          else:
+              print("::warning::Nenhum Project v2 encontrado no repositório.")
+
+          # ── Atualiza config.json ─────────────────────────────────────────────
+          config_path = "docs/showcase/config.json"
+          with open(config_path, "r", encoding="utf-8") as f:
+              config = json.load(f)
+
+          config["boardMetrics"] = board_metrics
+
+          with open(config_path, "w", encoding="utf-8") as f:
+              json.dump(config, f, ensure_ascii=False, indent=2)
+              f.write("\n")
+
+          print(f"config.json atualizado com boardMetrics: {json.dumps(board_metrics, ensure_ascii=False)}")
+          PYEOF
+
+      - name: Commit updated config.json
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git add docs/showcase/config.json
+
+          # Só commita se houver mudança real
+          if git diff --cached --quiet; then
+            echo "Nenhuma alteração nas métricas. Nada a commitar."
+          else
+            git commit -m "chore: update board metrics [skip ci]"
+            git push origin main
+            echo "config.json atualizado e enviado para main."
+          fi

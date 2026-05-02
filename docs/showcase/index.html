@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Tokemize — Uma camada intermediária que melhora como usamos IA" />
+    <title>Tokemize — Showcase</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#hero">Pular para o conteúdo principal</a>
+
+    <header class="site-header" role="banner">
+      <nav class="site-nav" aria-label="Navegação principal">
+        <a href="#hero" class="nav-logo">Tokemize</a>
+        <ul class="nav-links" role="list">
+          <li><a href="#stats">Estatísticas</a></li>
+          <li><a href="#contribution-graph">Contribuições</a></li>
+          <li><a href="#progress">Progresso</a></li>
+          <li><a href="#pipeline">Pipeline</a></li>
+          <li><a href="#tech-stack">Tecnologias</a></li>
+          <li><a href="#team">Equipe</a></li>
+        </ul>
+      </nav>
+    </header>
+
+    <main id="main-content">
+
+      <!-- ===== HERO ===== -->
+      <section id="hero" aria-labelledby="hero-title">
+        <div class="section-inner">
+          <h1 id="hero-title" class="hero-title">Tokemize</h1>
+          <p class="hero-tagline">Uma camada intermediária que melhora como usamos IA</p>
+
+          <div class="hero-problems" aria-label="Problemas que o Tokemize resolve">
+            <h2 class="problems-heading">Problemas que resolvemos</h2>
+            <ul class="problems-list" role="list" id="problems-list">
+              <!-- Preenchido por renderHero() -->
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== STATS ===== -->
+      <section id="stats" aria-labelledby="stats-title">
+        <div class="section-inner">
+          <h2 id="stats-title" class="section-title">Estatísticas do Repositório</h2>
+          <div class="stats-grid" id="stats-grid" aria-live="polite" aria-atomic="true">
+            <!-- Preenchido por renderStats() -->
+            <p class="loading-placeholder" aria-label="Carregando estatísticas">Carregando…</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== CONTRIBUTION GRAPH ===== -->
+      <section id="contribution-graph" aria-labelledby="graph-title">
+        <div class="section-inner">
+          <h2 id="graph-title" class="section-title">Atividade de Contribuições</h2>
+          <div id="contribution-graph-container" class="graph-container">
+            <!-- Preenchido por renderContributionGraph() -->
+            <p class="loading-placeholder" aria-label="Carregando gráfico de contribuições">Carregando…</p>
+          </div>
+          <div id="graph-tooltip" role="tooltip" aria-hidden="true" class="graph-tooltip"></div>
+        </div>
+      </section>
+
+      <!-- ===== PROGRESS ===== -->
+      <section id="progress" aria-labelledby="progress-title">
+        <div class="section-inner">
+          <h2 id="progress-title" class="section-title">Progresso por Módulo</h2>
+          <div id="progress-container">
+            <!-- Preenchido por renderProgressTracker() -->
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== PIPELINE ===== -->
+      <section id="pipeline" aria-labelledby="pipeline-title">
+        <div class="section-inner">
+          <h2 id="pipeline-title" class="section-title">Pipeline</h2>
+          <div id="pipeline-container" class="pipeline-flow" aria-label="Fluxo do pipeline Tokemize">
+            <!-- Preenchido por renderHero() / renderPipeline() -->
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== TECH STACK ===== -->
+      <section id="tech-stack" aria-labelledby="tech-title">
+        <div class="section-inner">
+          <h2 id="tech-title" class="section-title">Tecnologias</h2>
+          <ul id="tech-stack-list" class="tech-list" role="list">
+            <!-- Preenchido por renderTechStack() -->
+          </ul>
+        </div>
+      </section>
+
+      <!-- ===== TEAM ===== -->
+      <section id="team" aria-labelledby="team-title">
+        <div class="section-inner">
+          <h2 id="team-title" class="section-title">Equipe</h2>
+          <ul id="team-list" class="team-list" role="list">
+            <!-- Preenchido por renderTeam() -->
+          </ul>
+        </div>
+      </section>
+
+    </main>
+
+    <footer class="site-footer" role="contentinfo">
+      <p>
+        <a href="https://github.com/IA-para-DEVs-SCTEC-T2/mini-projeto-tokemize" target="_blank" rel="noopener noreferrer">
+          Ver repositório no GitHub
+        </a>
+      </p>
+    </footer>
+
+    <script type="module" src="app.js"></script>
+  </body>
+</html>
