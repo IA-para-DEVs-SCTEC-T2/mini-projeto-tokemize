@@ -155,7 +155,42 @@ export async function fetchRepoStats(owner, repo, timeout = 8000) {
 }
 
 // ---------------------------------------------------------------------------
-// fetchCommitActivity
+// fetchContributors
+// ---------------------------------------------------------------------------
+
+/**
+ * @typedef {Object} Contributor
+ * @property {string} login
+ * @property {number} contributions
+ * @property {string} avatar_url
+ * @property {string} html_url
+ */
+
+/**
+ * Busca a lista de contribuidores do repositório com total de commits.
+ *
+ * @param {string} owner
+ * @param {string} repo
+ * @param {number} [timeout=8000]
+ * @returns {Promise<Contributor[]>}
+ */
+export async function fetchContributors(owner, repo, timeout = 8000) {
+  const url = buildUrl(`/repos/${owner}/${repo}/contributors`, { per_page: 30 });
+  const response = await fetchWithTimeout(url, timeout);
+  const data = await response.json();
+
+  if (!Array.isArray(data)) return [];
+
+  return data.map((c) => ({
+    login:         c.login ?? 'unknown',
+    contributions: c.contributions ?? 0,
+    avatar_url:    c.avatar_url ?? '',
+    html_url:      c.html_url ?? `https://github.com/${c.login}`,
+  }));
+}
+
+// ---------------------------------------------------------------------------
+// fetchCommitActivity (mantido para compatibilidade com testes)
 // ---------------------------------------------------------------------------
 
 /**

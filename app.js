@@ -21,7 +21,7 @@
 
 import { loadConfig }          from './configLoader.js';
 import { CacheStore, DEFAULT_TTL } from './cacheStore.js';
-import { fetchRepoStats, fetchCommitActivity, fetchAvatarUrl } from './apiClient.js';
+import { fetchRepoStats, fetchContributors, fetchAvatarUrl } from './apiClient.js';
 
 import { renderHero }              from './components/hero.js';
 import { renderStats }             from './components/stats.js';
@@ -74,8 +74,7 @@ async function loadAndRenderStats(owner, repo, timeout, boardMetrics = null) {
 }
 
 /**
- * Carrega e renderiza o gráfico de contribuições.
- * Consulta o CacheStore antes de chamar a API.
+ * Carrega e renderiza o painel de contribuidores.
  *
  * @param {string} owner
  * @param {string} repo
@@ -85,24 +84,20 @@ async function loadAndRenderContributionGraph(owner, repo, timeout) {
   const isStale = cache.isStale(CACHE_KEY_ACTIVITY, DEFAULT_TTL);
 
   if (!isStale) {
-    // Cache válido — usar diretamente
     const cached = cache.get(CACHE_KEY_ACTIVITY);
     renderContributionGraph(cached);
     return;
   }
 
-  // Cache stale ou ausente — tentar a API
   try {
-    const activity = await fetchCommitActivity(owner, repo, timeout);
-    cache.set(CACHE_KEY_ACTIVITY, activity);
-    renderContributionGraph(activity);
+    const contributors = await fetchContributors(owner, repo, timeout);
+    cache.set(CACHE_KEY_ACTIVITY, contributors);
+    renderContributionGraph(contributors);
   } catch (err) {
-    // API falhou — verificar se há cache stale disponível
     const cached = cache.get(CACHE_KEY_ACTIVITY);
     if (cached !== null) {
       renderContributionGraph(cached);
     }
-    // Se não há cache, o gráfico permanece vazio (sem renderização de erro específica)
   }
 }
 

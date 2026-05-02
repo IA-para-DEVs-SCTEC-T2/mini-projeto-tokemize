@@ -1,176 +1,141 @@
 /**
- * contributionGraph.js — Componente de gráfico de barras SVG de contribuições
+ * contributionGraph.js — Painel de contribuidores do repositório
  *
- * Renderiza atividade semanal de commits como gráfico de barras SVG acessível.
+ * Renderiza cards com avatar, nome e total de commits de cada contribuidor,
+ * usando dados do endpoint /contributors da GitHub API.
  * Requirements: 3.1, 3.2, 3.3, 3.4
  */
 
-/** Paleta de cores distintas para autores (pelo menos 10 cores) */
+/** Paleta de cores distintas para autores */
 const AUTHOR_COLOR_PALETTE = [
-  '#58a6ff', // accent blue
-  '#3fb950', // green
-  '#d29922', // yellow/amber
-  '#f85149', // red
-  '#bc8cff', // purple
-  '#ff7b72', // coral
-  '#79c0ff', // light blue
-  '#56d364', // light green
-  '#e3b341', // gold
-  '#ff9bce', // pink
-  '#ffa657', // orange
-  '#8b949e', // neutral gray
+  '#58a6ff',
+  '#3fb950',
+  '#d29922',
+  '#f85149',
+  '#bc8cff',
+  '#ff7b72',
+  '#79c0ff',
+  '#56d364',
+  '#e3b341',
+  '#ff9bce',
+  '#ffa657',
+  '#8b949e',
 ];
 
 /**
  * Retorna um Map com uma cor distinta por autor.
  *
- * @param {string[]} authors - Array de usernames
- * @returns {Map<string, string>} Mapa de username → cor hex
+ * @param {string[]} authors
+ * @returns {Map<string, string>}
  */
 export function getAuthorColors(authors) {
   const colorMap = new Map();
   const uniqueAuthors = [...new Set(authors)];
-
   uniqueAuthors.forEach((author, index) => {
     colorMap.set(author, AUTHOR_COLOR_PALETTE[index % AUTHOR_COLOR_PALETTE.length]);
   });
-
   return colorMap;
 }
 
 /**
- * Formata uma data ISO (ex: "2025-01-06") para label abreviado (ex: "Jan 06").
- *
- * @param {string} isoDate - Data no formato "YYYY-MM-DD"
- * @returns {string} Label formatado
+ * @typedef {Object} Contributor
+ * @property {string} login
+ * @property {number} contributions
+ * @property {string} avatar_url
+ * @property {string} html_url
  */
-function formatWeekLabel(isoDate) {
-  try {
-    const date = new Date(isoDate + 'T00:00:00');
-    return date.toLocaleDateString('pt-BR', { month: 'short', day: '2-digit' });
-  } catch {
-    return isoDate;
-  }
-}
 
 /**
- * Renderiza um gráfico de barras SVG de atividade semanal de commits.
+ * Renderiza o painel de contribuidores no elemento #contribution-graph-container.
+ * Exibe avatar, login e total de commits de cada contribuidor.
  *
- * @typedef {Object} WeeklyActivity
- * @property {string} week - Data ISO do início da semana (ex: "2025-01-06")
- * @property {number} totalCommits - Total de commits na semana
- * @property {Object} byAuthor - Mapa de username → número de commits
- *
- * @param {WeeklyActivity[]} activity - Array de atividade semanal
+ * @param {Contributor[]} contributors
  */
-export function renderContributionGraph(activity) {
+export function renderContributionGraph(contributors) {
   const container = document.getElementById('contribution-graph-container');
   if (!container) return;
 
-  // Limpa o conteúdo anterior
   container.innerHTML = '';
 
-  const totalCommits = activity.reduce((sum, w) => sum + (w.totalCommits ?? 0), 0);
-  const ariaLabel = `Gráfico de contribuições: ${totalCommits} commits nas últimas ${activity.length} semanas`;
+  if (!Array.isArray(contributors) || contributors.length === 0) {
+    const empty = document.createElement('p');
+    empty.className = 'loading-placeholder';
+    empty.textContent = 'Nenhum dado de contribuição disponível.';
+    container.appendChild(empty);
+    return;
+  }
 
-  // Dimensões do SVG
-  const svgWidth = 780;
-  const svgHeight = 200;
-  const barWidth = 40;
-  const barGap = 20;
-  const paddingTop = 10;
-  const paddingBottom = 40; // espaço para labels do eixo X
-  const paddingLeft = 10;
-  const chartHeight = svgHeight - paddingTop - paddingBottom;
+  const colorMap = getAuthorColors(contributors.map(c => c.login));
 
-  // Altura máxima de commits para escala
-  const maxCommits = Math.max(...activity.map(w => w.totalCommits ?? 0), 1);
+  // Total de commits para calcular percentual de cada autor
+  const totalCommits = contributors.reduce((sum, c) => sum + c.contributions, 0);
 
-  // Cria o SVG
-  const svgNS = 'http://www.w3.org/2000/svg';
-  const svg = document.createElementNS(svgNS, 'svg');
-  svg.setAttribute('viewBox', `0 0 ${svgWidth} ${svgHeight}`);
-  svg.setAttribute('width', '100%');
-  svg.setAttribute('role', 'img');
-  svg.setAttribute('aria-label', ariaLabel);
+  const grid = document.createElement('div');
+  grid.className = 'contributors-grid';
+  grid.setAttribute('role', 'list');
+  grid.setAttribute('aria-label', `${contributors.length} contribuidores do repositório`);
 
-  // <title> interno para acessibilidade
-  const titleEl = document.createElementNS(svgNS, 'title');
-  titleEl.textContent = ariaLabel;
-  svg.appendChild(titleEl);
+  for (const contributor of contributors) {
+    const color = colorMap.get(contributor.login) ?? '#8b949e';
+    const pct = totalCommits > 0
+      ? Math.round((contributor.contributions / totalCommits) * 100)
+      : 0;
 
-  // Referência ao tooltip
-  const tooltip = document.getElementById('graph-tooltip');
+    const card = document.createElement('div');
+    card.className = 'contributor-card';
+    card.setAttribute('role', 'listitem');
+    card.style.setProperty('--contributor-color', color);
 
-  // Renderiza cada barra
-  activity.forEach((week, index) => {
-    const commits = week.totalCommits ?? 0;
-    const barHeight = chartHeight * (commits / maxCommits);
-    const x = paddingLeft + index * (barWidth + barGap);
-    const y = paddingTop + (chartHeight - barHeight);
+    // Avatar
+    const img = document.createElement('img');
+    img.className = 'contributor-avatar';
+    img.src = contributor.avatar_url;
+    img.alt = `Avatar de ${contributor.login}`;
+    img.width = 64;
+    img.height = 64;
+    img.loading = 'lazy';
+    // fallback se a imagem falhar
+    img.onerror = () => { img.src = 'assets/default-avatar.svg'; };
 
-    // Grupo da barra (barra + label)
-    const group = document.createElementNS(svgNS, 'g');
-    group.setAttribute('class', 'bar-group');
+    // Info
+    const info = document.createElement('div');
+    info.className = 'contributor-info';
 
-    // Retângulo da barra
-    const rect = document.createElementNS(svgNS, 'rect');
-    rect.setAttribute('x', String(x));
-    rect.setAttribute('y', String(y));
-    rect.setAttribute('width', String(barWidth));
-    rect.setAttribute('height', String(Math.max(barHeight, 1)));
-    rect.setAttribute('fill', 'var(--color-accent, #58a6ff)');
-    rect.setAttribute('rx', '3');
-    rect.setAttribute('ry', '3');
-    rect.setAttribute('tabindex', '0');
-    rect.setAttribute('aria-label', `${commits} commits — semana de ${week.week}`);
+    const name = document.createElement('a');
+    name.className = 'contributor-name';
+    name.href = contributor.html_url;
+    name.target = '_blank';
+    name.rel = 'noopener noreferrer';
+    name.textContent = contributor.login;
 
-    // Tooltip via mouse events
-    if (tooltip) {
-      rect.addEventListener('mouseenter', (e) => {
-        tooltip.textContent = `${commits} commits — semana de ${week.week}`;
-        tooltip.classList.add('visible');
-        tooltip.removeAttribute('aria-hidden');
-      });
+    const commits = document.createElement('span');
+    commits.className = 'contributor-commits';
+    commits.textContent = `${contributor.contributions} commits`;
 
-      rect.addEventListener('mousemove', (e) => {
-        tooltip.style.left = `${e.clientX + 12}px`;
-        tooltip.style.top = `${e.clientY - 28}px`;
-      });
+    // Barra de progresso proporcional
+    const barTrack = document.createElement('div');
+    barTrack.className = 'contributor-bar-track';
+    barTrack.setAttribute('role', 'progressbar');
+    barTrack.setAttribute('aria-valuenow', String(pct));
+    barTrack.setAttribute('aria-valuemin', '0');
+    barTrack.setAttribute('aria-valuemax', '100');
+    barTrack.setAttribute('aria-label', `${pct}% dos commits`);
 
-      rect.addEventListener('mouseleave', () => {
-        tooltip.classList.remove('visible');
-        tooltip.setAttribute('aria-hidden', 'true');
-      });
+    const barFill = document.createElement('div');
+    barFill.className = 'contributor-bar-fill';
+    barFill.style.width = `${pct}%`;
+    barFill.style.backgroundColor = color;
 
-      // Suporte a teclado (focus/blur)
-      rect.addEventListener('focus', (e) => {
-        tooltip.textContent = `${commits} commits — semana de ${week.week}`;
-        tooltip.classList.add('visible');
-        tooltip.removeAttribute('aria-hidden');
-      });
+    barTrack.appendChild(barFill);
+    info.appendChild(name);
+    info.appendChild(commits);
+    info.appendChild(barTrack);
 
-      rect.addEventListener('blur', () => {
-        tooltip.classList.remove('visible');
-        tooltip.setAttribute('aria-hidden', 'true');
-      });
-    }
+    card.appendChild(img);
+    card.appendChild(info);
+    grid.appendChild(card);
+  }
 
-    group.appendChild(rect);
-
-    // Label do eixo X
-    const label = document.createElementNS(svgNS, 'text');
-    label.setAttribute('x', String(x + barWidth / 2));
-    label.setAttribute('y', String(svgHeight - 8));
-    label.setAttribute('text-anchor', 'middle');
-    label.setAttribute('font-size', '10');
-    label.setAttribute('fill', 'var(--color-text-secondary, #8b949e)');
-    label.setAttribute('aria-hidden', 'true');
-    label.textContent = formatWeekLabel(week.week);
-
-    group.appendChild(label);
-    svg.appendChild(group);
-  });
-
-  container.appendChild(svg);
+  container.appendChild(grid);
 }
+
