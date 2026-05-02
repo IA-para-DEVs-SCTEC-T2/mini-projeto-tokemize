@@ -1,4 +1,36 @@
 [build-system]
+requires = ["setuptools>=68.0.0", "wheel>=0.41.0"]
+build-backend = "setuptools.backends.legacy:build"
+
+[project]
+name = "tokemize"
+version = "0.1.0"
+description = "CLI para otimização de contexto para LLMs"
+requires-python = ">=3.11"
+dependencies = [
+    "typer==0.12.3",
+]
+
+[project.optional-dependencies]
+dev = [
+    "hypothesis==6.112.1",
+    "pytest==8.3.2",
+    "pytest-cov==5.0.0",
+]
+
+[project.scripts]
+tokemize = "cli:app"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["tokemize*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+[build-system]
 requires = ["setuptools>=68.0", "wheel"]
 build-backend = "setuptools.backends.legacy:build"
 
