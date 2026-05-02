@@ -3,13 +3,23 @@
 Extrai artefatos estruturais (classes, funções, métodos, imports) de arquivos
 de código-fonte usando grammars Tree-sitter para Python, Java, JavaScript e
 TypeScript.
+
+Abordagem de extração:
+    Usa child_by_field_name() — a API declarativa recomendada pelo Tree-sitter
+    para acessar nós nomeados na gramática (ex: name:, body:, parameters:).
+    Isso substitui a navegação manual por tipo de nó, tornando o código mais
+    conciso, preciso e resiliente a mudanças de gramática.
+
+Thread-safety:
+    O dicionário _PARSERS é compartilhado entre instâncias. Parsers do
+    Tree-sitter não são thread-safe. Para uso concorrente, instancie um
+    TreeSitterAnalyzer por thread ou use threading.local().
 """
 
 from __future__ import annotations
 
 import logging
 from pathlib import Path
-from typing import Callable
 
 import tree_sitter_java as tsjava
 import tree_sitter_javascript as tsjs
@@ -62,7 +72,10 @@ class ParseError(RuntimeError):
 
 
 # ---------------------------------------------------------------------------
-# Inicialização lazy dos parsers (um por linguagem)
+# Parsers lazy — um por linguagem, criados na primeira chamada
+#
+# AVISO DE THREAD-SAFETY: este dicionário é compartilhado. Para uso
+# concorrente, use threading.local() ou instancie parsers por thread.
 # ---------------------------------------------------------------------------
 
 _PARSERS: dict[str, Parser] = {}
@@ -101,65 +114,99 @@ def _get_parser(language: str) -> Parser:
 
 
 # ---------------------------------------------------------------------------
-# Extratores por linguagem
+# Utilitários de extração de texto
 # ---------------------------------------------------------------------------
 
-# Tipo de função extratora: recebe (node, source_bytes, file_path) → list[Artifact]
-_ExtractorFn = Callable[[Node, bytes, str], list[Artifact]]
-
-
-def _node_text(node: Node, source: bytes) -> str:
+def _text(node: Node | None, source: bytes) -> str:
     """Extrai o texto original de um nó da AST.
 
     Args:
-        node: Nó da AST.
+        node: Nó da AST ou None.
         source: Bytes do arquivo fonte.
 
     Returns:
-        Texto do nó como string UTF-8.
+        Texto do nó como string UTF-8, ou string vazia se node for None.
     """
+    if node is None:
+        return ""
     return source[node.start_byte:node.end_byte].decode("utf-8", errors="replace")
 
 
-def _child_text(node: Node, *types: str) -> str:
-    """Retorna o texto do primeiro filho com um dos tipos especificados.
+def _field_text(node: Node, field: str) -> str:
+    """Retorna o texto do filho acessado por nome de campo (field name).
+
+    Usa child_by_field_name() — a API declarativa do Tree-sitter que acessa
+    nós nomeados na gramática (ex: name:, body:, parameters:).
 
     Args:
         node: Nó pai.
-        *types: Tipos de nó a procurar.
+        field: Nome do campo na gramática (ex: "name", "body").
 
     Returns:
-        Texto do filho encontrado ou string vazia.
+        Texto do campo ou string vazia se o campo não existir.
     """
-    for child in node.children:
-        if child.type in types:
-            return child.text.decode("utf-8", errors="replace") if child.text else ""
-    return ""
+    child = node.child_by_field_name(field)
+    if child is None:
+        return ""
+    return child.text.decode("utf-8", errors="replace") if child.text else ""
 
 
-# ---- Python ----------------------------------------------------------------
-
-def _extract_python(node: Node, source: bytes, file_path: str) -> list[Artifact]:
-    """Extrai artefatos de um arquivo Python.
-
-    Percorre a AST recursivamente extraindo:
-    - import_statement → type "import"
-    - import_from_statement → type "import"
-    - function_definition (top-level) → type "function"
-    - class_definition → type "class"
-    - function_definition dentro de class → type "method"
-    - decorated_definition → delega ao nó interno
+def _make_artifact(
+    name: str,
+    artifact_type: str,
+    node: Node,
+    source: bytes,
+    language: str,
+    file_path: str,
+) -> Artifact:
+    """Cria um Artifact a partir de um nó da AST.
 
     Args:
-        node: Nó raiz da AST.
+        name: Nome do artefato.
+        artifact_type: Tipo: "function", "class", "method" ou "import".
+        node: Nó da AST que representa o artefato completo.
         source: Bytes do arquivo fonte.
-        file_path: Caminho do arquivo (para metadados).
+        language: Linguagem de programação.
+        file_path: Caminho do arquivo de origem.
+
+    Returns:
+        Instância de Artifact com todos os metadados preenchidos.
+    """
+    return Artifact(
+        name=name,
+        type=artifact_type,
+        start_line=node.start_point.row + 1,
+        end_line=node.end_point.row + 1,
+        language=language,
+        content=_text(node, source),
+        file_path=file_path,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Extrator Python
+# ---------------------------------------------------------------------------
+
+def _extract_python(root: Node, source: bytes, file_path: str) -> list[Artifact]:
+    """Extrai artefatos de um arquivo Python usando field names da gramática.
+
+    Extrai:
+    - import_statement / import_from_statement → "import"
+    - function_definition (top-level) → "function"
+    - class_definition → "class"
+    - function_definition dentro de class → "method"
+    - decorated_definition → delega ao nó interno preservando o range completo
+
+    Args:
+        root: Nó raiz da AST (module).
+        source: Bytes do arquivo fonte.
+        file_path: Caminho do arquivo.
 
     Returns:
         Lista de Artifact extraídos.
     """
     artifacts: list[Artifact] = []
-    _walk_python(node, source, file_path, artifacts, inside_class=False)
+    _walk_python(root, source, file_path, artifacts, inside_class=False)
     return artifacts
 
 
@@ -170,53 +217,33 @@ def _walk_python(
     artifacts: list[Artifact],
     inside_class: bool,
 ) -> None:
-    """Percorre recursivamente a AST Python extraindo artefatos.
-
-    Args:
-        node: Nó atual da AST.
-        source: Bytes do arquivo fonte.
-        file_path: Caminho do arquivo.
-        artifacts: Lista acumuladora de artefatos.
-        inside_class: True se o nó atual está dentro de uma classe.
-    """
     for child in node.children:
-        if child.type in ("import_statement", "import_from_statement"):
+        if child.type == "import_statement":
+            # import X  →  name via primeiro dotted_name ou aliased_import
             name = _python_import_name(child, source)
-            artifacts.append(
-                Artifact(
-                    name=name,
-                    type="import",
-                    start_line=child.start_point.row + 1,
-                    end_line=child.end_point.row + 1,
-                    language="python",
-                    content=_node_text(child, source),
-                    file_path=file_path,
-                )
-            )
+            artifacts.append(_make_artifact(name, "import", child, source, "python", file_path))
+
+        elif child.type == "import_from_statement":
+            name = _python_import_name(child, source)
+            artifacts.append(_make_artifact(name, "import", child, source, "python", file_path))
 
         elif child.type == "decorated_definition":
-            # Delega ao nó interno (function_definition ou class_definition)
             # O range do decorated_definition inclui os decorators
             inner = next(
-                (
-                    c
-                    for c in child.children
-                    if c.type in ("function_definition", "class_definition")
-                ),
+                (c for c in child.children if c.type in ("function_definition", "class_definition")),
                 None,
             )
             if inner:
-                _extract_python_def(
-                    inner, child, source, file_path, artifacts, inside_class
-                )
+                _process_python_def(inner, child, source, file_path, artifacts, inside_class)
 
-        elif child.type in ("function_definition", "class_definition"):
-            _extract_python_def(
-                child, child, source, file_path, artifacts, inside_class
-            )
+        elif child.type == "function_definition":
+            _process_python_def(child, child, source, file_path, artifacts, inside_class)
+
+        elif child.type == "class_definition":
+            _process_python_def(child, child, source, file_path, artifacts, inside_class)
 
 
-def _extract_python_def(
+def _process_python_def(
     node: Node,
     range_node: Node,
     source: bytes,
@@ -224,50 +251,32 @@ def _extract_python_def(
     artifacts: list[Artifact],
     inside_class: bool,
 ) -> None:
-    """Extrai um artefato de definição Python (função ou classe).
+    """Processa uma definição Python (função ou classe) e extrai o artefato.
 
     Args:
         node: Nó da definição (function_definition ou class_definition).
-        range_node: Nó usado para calcular start/end line (pode incluir decorators).
+        range_node: Nó cujo range define start/end line (inclui decorators se houver).
         source: Bytes do arquivo fonte.
         file_path: Caminho do arquivo.
         artifacts: Lista acumuladora.
         inside_class: True se está dentro de uma classe.
     """
-    name = _child_text(node, "identifier")
+    # child_by_field_name("name") acessa o campo `name:` da gramática Python
+    name_node = node.child_by_field_name("name")
+    if name_node is None:
+        return
+    name = name_node.text.decode("utf-8", errors="replace") if name_node.text else ""
     if not name:
         return
 
     if node.type == "function_definition":
         artifact_type = "method" if inside_class else "function"
-        artifacts.append(
-            Artifact(
-                name=name,
-                type=artifact_type,
-                start_line=range_node.start_point.row + 1,
-                end_line=range_node.end_point.row + 1,
-                language="python",
-                content=_node_text(range_node, source),
-                file_path=file_path,
-            )
-        )
+        artifacts.append(_make_artifact(name, artifact_type, range_node, source, "python", file_path))
 
     elif node.type == "class_definition":
-        artifacts.append(
-            Artifact(
-                name=name,
-                type="class",
-                start_line=range_node.start_point.row + 1,
-                end_line=range_node.end_point.row + 1,
-                language="python",
-                content=_node_text(range_node, source),
-                file_path=file_path,
-            )
-        )
+        artifacts.append(_make_artifact(name, "class", range_node, source, "python", file_path))
         # Percorre o corpo da classe para extrair métodos
-        body = next(
-            (c for c in node.children if c.type == "block"), None
-        )
+        body = node.child_by_field_name("body")
         if body:
             _walk_python(body, source, file_path, artifacts, inside_class=True)
 
@@ -286,13 +295,12 @@ def _python_import_name(node: Node, source: bytes) -> str:
         Nome do import como string.
     """
     if node.type == "import_statement":
-        # import X, Y → pega o primeiro nome
         for child in node.children:
             if child.type in ("dotted_name", "aliased_import"):
                 return child.text.decode("utf-8", errors="replace") if child.text else ""
-        return _node_text(node, source).strip()
+        return _text(node, source).strip()
 
-    # import_from_statement: from X import Y
+    # import_from_statement: from <module> import <name>
     module = ""
     imported = ""
     for child in node.children:
@@ -301,25 +309,25 @@ def _python_import_name(node: Node, source: bytes) -> str:
         elif child.type in ("dotted_name", "identifier") and module:
             imported = child.text.decode("utf-8", errors="replace") if child.text else ""
             break
-        elif child.type == "import":
-            continue
     if module and imported:
         return f"{module}.{imported}"
-    return module or _node_text(node, source).strip()
+    return module or _text(node, source).strip()
 
 
-# ---- Java ------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Extrator Java
+# ---------------------------------------------------------------------------
 
-def _extract_java(node: Node, source: bytes, file_path: str) -> list[Artifact]:
-    """Extrai artefatos de um arquivo Java.
+def _extract_java(root: Node, source: bytes, file_path: str) -> list[Artifact]:
+    """Extrai artefatos de um arquivo Java usando field names da gramática.
 
     Extrai:
-    - import_declaration → type "import"
-    - class_declaration / interface_declaration → type "class"
-    - method_declaration / constructor_declaration → type "method"
+    - import_declaration → "import"
+    - class_declaration / interface_declaration / enum_declaration → "class"
+    - method_declaration / constructor_declaration → "method"
 
     Args:
-        node: Nó raiz da AST.
+        root: Nó raiz da AST (program).
         source: Bytes do arquivo fonte.
         file_path: Caminho do arquivo.
 
@@ -327,7 +335,7 @@ def _extract_java(node: Node, source: bytes, file_path: str) -> list[Artifact]:
         Lista de Artifact extraídos.
     """
     artifacts: list[Artifact] = []
-    _walk_java(node, source, file_path, artifacts, inside_class=False)
+    _walk_java(root, source, file_path, artifacts, inside_class=False)
     return artifacts
 
 
@@ -338,85 +346,53 @@ def _walk_java(
     artifacts: list[Artifact],
     inside_class: bool,
 ) -> None:
-    """Percorre recursivamente a AST Java.
-
-    Args:
-        node: Nó atual.
-        source: Bytes do arquivo fonte.
-        file_path: Caminho do arquivo.
-        artifacts: Lista acumuladora.
-        inside_class: True se dentro de uma classe.
-    """
     for child in node.children:
         if child.type == "import_declaration":
-            # Pega o scoped_identifier ou dotted_name
+            # Java: import java.util.List; → scoped_identifier ou identifier
             name = ""
             for c in child.children:
                 if c.type in ("scoped_identifier", "identifier"):
                     name = c.text.decode("utf-8", errors="replace") if c.text else ""
                     break
             artifacts.append(
-                Artifact(
-                    name=name or _node_text(child, source).strip(),
-                    type="import",
-                    start_line=child.start_point.row + 1,
-                    end_line=child.end_point.row + 1,
-                    language="java",
-                    content=_node_text(child, source),
-                    file_path=file_path,
-                )
+                _make_artifact(name or _text(child, source).strip(), "import", child, source, "java", file_path)
             )
 
         elif child.type in ("class_declaration", "interface_declaration", "enum_declaration"):
-            name = _child_text(child, "identifier")
+            # child_by_field_name("name") acessa o campo `name:` da gramática Java
+            name = _field_text(child, "name")
             if name:
-                artifacts.append(
-                    Artifact(
-                        name=name,
-                        type="class",
-                        start_line=child.start_point.row + 1,
-                        end_line=child.end_point.row + 1,
-                        language="java",
-                        content=_node_text(child, source),
-                        file_path=file_path,
-                    )
-                )
+                artifacts.append(_make_artifact(name, "class", child, source, "java", file_path))
             # Percorre o corpo para métodos
-            _walk_java(child, source, file_path, artifacts, inside_class=True)
+            body = child.child_by_field_name("body")
+            if body:
+                _walk_java(body, source, file_path, artifacts, inside_class=True)
 
         elif child.type in ("method_declaration", "constructor_declaration") and inside_class:
-            name = _child_text(child, "identifier")
+            name = _field_text(child, "name")
             if name:
-                artifacts.append(
-                    Artifact(
-                        name=name,
-                        type="method",
-                        start_line=child.start_point.row + 1,
-                        end_line=child.end_point.row + 1,
-                        language="java",
-                        content=_node_text(child, source),
-                        file_path=file_path,
-                    )
-                )
+                artifacts.append(_make_artifact(name, "method", child, source, "java", file_path))
 
         else:
             _walk_java(child, source, file_path, artifacts, inside_class)
 
 
-# ---- JavaScript ------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Extrator JavaScript
+# ---------------------------------------------------------------------------
 
-def _extract_javascript(node: Node, source: bytes, file_path: str) -> list[Artifact]:
-    """Extrai artefatos de um arquivo JavaScript.
+def _extract_javascript(root: Node, source: bytes, file_path: str) -> list[Artifact]:
+    """Extrai artefatos de um arquivo JavaScript usando field names da gramática.
 
     Extrai:
-    - import_statement → type "import"
-    - class_declaration → type "class"
-    - method_definition → type "method"
-    - function_declaration → type "function"
-    - lexical_declaration / variable_declaration com arrow function → type "function"
+    - import_statement → "import"
+    - class_declaration → "class"
+    - method_definition → "method"
+    - function_declaration → "function"
+    - lexical_declaration / variable_declaration com arrow/function → "function"
 
     Args:
-        node: Nó raiz da AST.
+        root: Nó raiz da AST (program).
         source: Bytes do arquivo fonte.
         file_path: Caminho do arquivo.
 
@@ -424,7 +400,7 @@ def _extract_javascript(node: Node, source: bytes, file_path: str) -> list[Artif
         Lista de Artifact extraídos.
     """
     artifacts: list[Artifact] = []
-    _walk_js(node, source, file_path, artifacts, language="javascript", inside_class=False)
+    _walk_js(root, source, file_path, artifacts, language="javascript", inside_class=False)
     return artifacts
 
 
@@ -436,85 +412,33 @@ def _walk_js(
     language: str,
     inside_class: bool,
 ) -> None:
-    """Percorre recursivamente a AST JavaScript/TypeScript.
-
-    Args:
-        node: Nó atual.
-        source: Bytes do arquivo fonte.
-        file_path: Caminho do arquivo.
-        artifacts: Lista acumuladora.
-        language: "javascript" ou "typescript".
-        inside_class: True se dentro de uma classe.
-    """
     for child in node.children:
         if child.type == "import_statement":
             name = _js_import_name(child, source)
-            artifacts.append(
-                Artifact(
-                    name=name,
-                    type="import",
-                    start_line=child.start_point.row + 1,
-                    end_line=child.end_point.row + 1,
-                    language=language,
-                    content=_node_text(child, source),
-                    file_path=file_path,
-                )
-            )
+            artifacts.append(_make_artifact(name, "import", child, source, language, file_path))
 
         elif child.type == "class_declaration":
-            # JS usa "identifier", TS usa "type_identifier"
-            name = _child_text(child, "identifier", "type_identifier")
+            # child_by_field_name("name") acessa o campo `name:` da gramática JS/TS
+            name = _field_text(child, "name")
             if name:
-                artifacts.append(
-                    Artifact(
-                        name=name,
-                        type="class",
-                        start_line=child.start_point.row + 1,
-                        end_line=child.end_point.row + 1,
-                        language=language,
-                        content=_node_text(child, source),
-                        file_path=file_path,
-                    )
-                )
-            # Percorre o corpo da classe
-            body = next(
-                (c for c in child.children if c.type == "class_body"), None
-            )
+                artifacts.append(_make_artifact(name, "class", child, source, language, file_path))
+            body = child.child_by_field_name("body")
             if body:
                 _walk_js(body, source, file_path, artifacts, language, inside_class=True)
 
         elif child.type == "method_definition" and inside_class:
-            name = _child_text(child, "property_identifier", "identifier")
+            # child_by_field_name("name") acessa o campo `name:` da gramática JS/TS
+            name = _field_text(child, "name")
             if name:
-                artifacts.append(
-                    Artifact(
-                        name=name,
-                        type="method",
-                        start_line=child.start_point.row + 1,
-                        end_line=child.end_point.row + 1,
-                        language=language,
-                        content=_node_text(child, source),
-                        file_path=file_path,
-                    )
-                )
+                artifacts.append(_make_artifact(name, "method", child, source, language, file_path))
 
         elif child.type == "function_declaration":
-            name = _child_text(child, "identifier")
+            # child_by_field_name("name") acessa o campo `name:` da gramática JS/TS
+            name = _field_text(child, "name")
             if name:
-                artifacts.append(
-                    Artifact(
-                        name=name,
-                        type="function",
-                        start_line=child.start_point.row + 1,
-                        end_line=child.end_point.row + 1,
-                        language=language,
-                        content=_node_text(child, source),
-                        file_path=file_path,
-                    )
-                )
+                artifacts.append(_make_artifact(name, "function", child, source, language, file_path))
 
         elif child.type in ("lexical_declaration", "variable_declaration"):
-            # Detecta: const foo = () => ... ou const foo = function() ...
             _extract_js_variable_fn(child, source, file_path, artifacts, language)
 
         else:
@@ -530,6 +454,10 @@ def _extract_js_variable_fn(
 ) -> None:
     """Extrai funções declaradas como variáveis (arrow functions, function expressions).
 
+    Detecta padrões como:
+    - const foo = (x) => x + 1
+    - const foo = function(x) { return x; }
+
     Args:
         node: Nó lexical_declaration ou variable_declaration.
         source: Bytes do arquivo fonte.
@@ -540,34 +468,21 @@ def _extract_js_variable_fn(
     for declarator in node.children:
         if declarator.type != "variable_declarator":
             continue
-        name = _child_text(declarator, "identifier")
+        # child_by_field_name("name") acessa o campo `name:` do variable_declarator
+        name_node = declarator.child_by_field_name("name")
+        if name_node is None:
+            continue
+        name = name_node.text.decode("utf-8", errors="replace") if name_node.text else ""
         if not name:
             continue
-        # Verifica se o valor é arrow_function ou function_expression
-        value = next(
-            (
-                c
-                for c in declarator.children
-                if c.type in ("arrow_function", "function_expression", "function")
-            ),
-            None,
-        )
-        if value:
-            artifacts.append(
-                Artifact(
-                    name=name,
-                    type="function",
-                    start_line=node.start_point.row + 1,
-                    end_line=node.end_point.row + 1,
-                    language=language,
-                    content=_node_text(node, source),
-                    file_path=file_path,
-                )
-            )
+        # child_by_field_name("value") acessa o campo `value:` do variable_declarator
+        value = declarator.child_by_field_name("value")
+        if value and value.type in ("arrow_function", "function_expression", "function"):
+            artifacts.append(_make_artifact(name, "function", node, source, language, file_path))
 
 
 def _js_import_name(node: Node, source: bytes) -> str:
-    """Extrai o nome representativo de um import JavaScript/TypeScript.
+    """Extrai o caminho do módulo de um import JavaScript/TypeScript.
 
     Args:
         node: Nó import_statement.
@@ -576,24 +491,29 @@ def _js_import_name(node: Node, source: bytes) -> str:
     Returns:
         Caminho do módulo importado (ex: "react", "./utils").
     """
-    # Procura string literal com o caminho do módulo
+    # child_by_field_name("source") acessa o campo `source:` do import_statement
+    source_node = node.child_by_field_name("source")
+    if source_node and source_node.text:
+        return source_node.text.decode("utf-8", errors="replace").strip("'\"")
+    # Fallback: procura string literal
     for child in node.children:
-        if child.type == "string":
-            text = child.text.decode("utf-8", errors="replace") if child.text else ""
-            return text.strip("'\"")
-    return _node_text(node, source).strip()
+        if child.type == "string" and child.text:
+            return child.text.decode("utf-8", errors="replace").strip("'\"")
+    return _text(node, source).strip()
 
 
-# ---- TypeScript ------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Extrator TypeScript
+# ---------------------------------------------------------------------------
 
-def _extract_typescript(node: Node, source: bytes, file_path: str) -> list[Artifact]:
-    """Extrai artefatos de um arquivo TypeScript.
+def _extract_typescript(root: Node, source: bytes, file_path: str) -> list[Artifact]:
+    """Extrai artefatos de um arquivo TypeScript usando field names da gramática.
 
-    Reutiliza o walker JavaScript com linguagem "typescript".
-    Adiciona suporte a interface_declaration e type_alias_declaration.
+    Estende o extrator JavaScript com suporte a:
+    - interface_declaration → "class" (interfaces mapeiam para "class" no modelo)
 
     Args:
-        node: Nó raiz da AST.
+        root: Nó raiz da AST (program).
         source: Bytes do arquivo fonte.
         file_path: Caminho do arquivo.
 
@@ -601,7 +521,7 @@ def _extract_typescript(node: Node, source: bytes, file_path: str) -> list[Artif
         Lista de Artifact extraídos.
     """
     artifacts: list[Artifact] = []
-    _walk_ts(node, source, file_path, artifacts, inside_class=False)
+    _walk_ts(root, source, file_path, artifacts, inside_class=False)
     return artifacts
 
 
@@ -612,103 +532,37 @@ def _walk_ts(
     artifacts: list[Artifact],
     inside_class: bool,
 ) -> None:
-    """Percorre recursivamente a AST TypeScript.
-
-    Estende o walker JS com suporte a interface_declaration.
-    Para os demais tipos de nó, delega ao walker JS.
-
-    Args:
-        node: Nó atual.
-        source: Bytes do arquivo fonte.
-        file_path: Caminho do arquivo.
-        artifacts: Lista acumuladora.
-        inside_class: True se dentro de uma classe.
-    """
     for child in node.children:
         if child.type == "interface_declaration":
-            name = _child_text(child, "type_identifier", "identifier")
+            # child_by_field_name("name") acessa o campo `name:` da gramática TS
+            name = _field_text(child, "name")
             if name:
-                artifacts.append(
-                    Artifact(
-                        name=name,
-                        type="class",  # interfaces mapeiam para "class" no modelo
-                        start_line=child.start_point.row + 1,
-                        end_line=child.end_point.row + 1,
-                        language="typescript",
-                        content=_node_text(child, source),
-                        file_path=file_path,
-                    )
-                )
-            # Percorre o corpo da interface para métodos
-            body = next(
-                (c for c in child.children if c.type == "object_type"), None
-            )
+                artifacts.append(_make_artifact(name, "class", child, source, "typescript", file_path))
+            body = child.child_by_field_name("body")
             if body:
                 _walk_ts(body, source, file_path, artifacts, inside_class=True)
 
         elif child.type == "class_declaration":
-            name = _child_text(child, "type_identifier", "identifier")
+            name = _field_text(child, "name")
             if name:
-                artifacts.append(
-                    Artifact(
-                        name=name,
-                        type="class",
-                        start_line=child.start_point.row + 1,
-                        end_line=child.end_point.row + 1,
-                        language="typescript",
-                        content=_node_text(child, source),
-                        file_path=file_path,
-                    )
-                )
-            body = next(
-                (c for c in child.children if c.type == "class_body"), None
-            )
+                artifacts.append(_make_artifact(name, "class", child, source, "typescript", file_path))
+            body = child.child_by_field_name("body")
             if body:
                 _walk_ts(body, source, file_path, artifacts, inside_class=True)
 
         elif child.type == "method_definition" and inside_class:
-            name = _child_text(child, "property_identifier", "identifier")
+            name = _field_text(child, "name")
             if name:
-                artifacts.append(
-                    Artifact(
-                        name=name,
-                        type="method",
-                        start_line=child.start_point.row + 1,
-                        end_line=child.end_point.row + 1,
-                        language="typescript",
-                        content=_node_text(child, source),
-                        file_path=file_path,
-                    )
-                )
+                artifacts.append(_make_artifact(name, "method", child, source, "typescript", file_path))
 
         elif child.type == "function_declaration":
-            name = _child_text(child, "identifier")
+            name = _field_text(child, "name")
             if name:
-                artifacts.append(
-                    Artifact(
-                        name=name,
-                        type="function",
-                        start_line=child.start_point.row + 1,
-                        end_line=child.end_point.row + 1,
-                        language="typescript",
-                        content=_node_text(child, source),
-                        file_path=file_path,
-                    )
-                )
+                artifacts.append(_make_artifact(name, "function", child, source, "typescript", file_path))
 
         elif child.type == "import_statement":
             name = _js_import_name(child, source)
-            artifacts.append(
-                Artifact(
-                    name=name,
-                    type="import",
-                    start_line=child.start_point.row + 1,
-                    end_line=child.end_point.row + 1,
-                    language="typescript",
-                    content=_node_text(child, source),
-                    file_path=file_path,
-                )
-            )
+            artifacts.append(_make_artifact(name, "import", child, source, "typescript", file_path))
 
         elif child.type in ("lexical_declaration", "variable_declaration"):
             _extract_js_variable_fn(child, source, file_path, artifacts, "typescript")
@@ -721,14 +575,12 @@ def _walk_ts(
 # Mapeamento de linguagem → extrator
 # ---------------------------------------------------------------------------
 
-_EXTRACTORS: dict[str, _ExtractorFn] = {
+_EXTRACTORS = {
     "python": _extract_python,
     "java": _extract_java,
     "javascript": _extract_javascript,
     "typescript": _extract_typescript,
 }
-
-# _walk_js_single foi removido — TypeScript tem walker próprio (_walk_ts)
 
 
 # ---------------------------------------------------------------------------
@@ -741,6 +593,14 @@ class TreeSitterAnalyzer:
     Suporta Python, Java, JavaScript e TypeScript. Retorna artefatos parciais
     em caso de erros de sintaxe, registrando warnings com a localização.
 
+    A extração usa child_by_field_name() — a API declarativa do Tree-sitter
+    que acessa campos nomeados na gramática, tornando o código conciso e
+    resiliente a mudanças de gramática.
+
+    Thread-safety: não é thread-safe por padrão devido ao cache _PARSERS
+    compartilhado. Para uso concorrente, instancie um TreeSitterAnalyzer
+    por thread.
+
     Args:
         language_map: Mapeamento de extensão → linguagem.
             Usa SUPPORTED_LANGUAGES por padrão.
@@ -752,9 +612,7 @@ class TreeSitterAnalyzer:
         ...     print(a.type, a.name, a.start_line)
     """
 
-    def __init__(
-        self, language_map: dict[str, str] | None = None
-    ) -> None:
+    def __init__(self, language_map: dict[str, str] | None = None) -> None:
         self._language_map = language_map or SUPPORTED_LANGUAGES
 
     def analyze(self, file_path: Path) -> list[Artifact]:
@@ -783,10 +641,8 @@ class TreeSitterAnalyzer:
 
         source = self._read_source(file_path)
         parser = _get_parser(language)
-
         tree = parser.parse(source)
 
-        # Detecta erros de sintaxe na AST
         if tree.root_node.has_error:
             logger.warning(
                 "Erros de sintaxe detectados em '%s'. "
@@ -819,8 +675,7 @@ class TreeSitterAnalyzer:
         all_artifacts: list[Artifact] = []
         for path in file_paths:
             try:
-                artifacts = self.analyze(path)
-                all_artifacts.extend(artifacts)
+                all_artifacts.extend(self.analyze(path))
             except (UnsupportedLanguageError, FileNotFoundError) as exc:
                 logger.warning("Ignorando arquivo '%s': %s", path, exc)
             except Exception as exc:  # noqa: BLE001

@@ -2,20 +2,25 @@
 
 Cobre:
 - Varredura básica de diretório
-- Aplicação de lista de ignores
-- Coleta de metadados (linguagem, extensão, tamanho, linhas)
+- Aplicação de lista de ignores (parametrizado)
+- Coleta de metadados (linguagem, extensão, tamanho, linhas) (parametrizado)
 - Arquivos com extensão não suportada são ignorados
 - Diretórios ignorados por padrão (.git, node_modules, etc.)
 - Diretórios ignorados customizados
 - Arquivo maior que o limite é ignorado
 - Diretório inválido levanta NotADirectoryError
+- Proteção contra symlinks
+- PermissionError tratado sem quebrar a varredura
+- iter_files() lazy/streaming
 - Propriedades do scanner (ignore_dirs, supported_extensions)
 """
 
 from __future__ import annotations
 
 import os
+import sys
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 
@@ -60,34 +65,18 @@ def repo(tmp_path: Path) -> Path:
     root = tmp_path / "repo"
     root.mkdir()
 
-    # Arquivos válidos
     (root / "main.py").write_text("def main(): pass\n")
     (root / "utils.py").write_text("import os\n\ndef helper(): pass\n")
     (root / "App.java").write_text("public class App {}\n")
     (root / "index.js").write_text("function init() {}\n")
     (root / "types.ts").write_text("interface IFoo { bar(): void; }\n")
-
-    # Arquivo com extensão não suportada
     (root / "README.md").write_text("# Readme\n")
 
-    # Diretórios ignorados
-    git_dir = root / ".git"
-    git_dir.mkdir()
-    (git_dir / "config").write_text("[core]\n")
+    for ignored_dir in (".git", "node_modules", "dist", "build"):
+        d = root / ignored_dir
+        d.mkdir()
+        (d / "file.js").write_text("// ignored\n")
 
-    nm_dir = root / "node_modules"
-    nm_dir.mkdir()
-    (nm_dir / "lib.js").write_text("module.exports = {};\n")
-
-    dist_dir = root / "dist"
-    dist_dir.mkdir()
-    (dist_dir / "bundle.js").write_text("(function(){})()\n")
-
-    build_dir = root / "build"
-    build_dir.mkdir()
-    (build_dir / "output.py").write_text("x = 1\n")
-
-    # Subdiretório válido
     src_dir = root / "src"
     src_dir.mkdir()
     (src_dir / "helper.py").write_text("def helper(): return 42\n")
@@ -134,54 +123,37 @@ class TestScanBasic:
     def test_scan_skipped_files_count(self, scanner: RepositoryScanner, repo: Path) -> None:
         """skipped_files deve contar arquivos com extensão não suportada."""
         result = scanner.scan(repo)
-        # README.md é ignorado por extensão
         assert result.skipped_files >= 1
 
     def test_scan_invalid_directory_raises(self, scanner: RepositoryScanner, tmp_path: Path) -> None:
         """scan() deve levantar NotADirectoryError para caminho inválido."""
-        fake_path = tmp_path / "nao_existe"
         with pytest.raises(NotADirectoryError, match="nao_existe"):
-            scanner.scan(fake_path)
+            scanner.scan(tmp_path / "nao_existe")
 
     def test_scan_file_path_raises(self, scanner: RepositoryScanner, tmp_path: Path) -> None:
         """scan() deve levantar NotADirectoryError se o caminho for um arquivo."""
-        file_path = tmp_path / "arquivo.py"
-        file_path.write_text("x = 1")
+        f = tmp_path / "arquivo.py"
+        f.write_text("x = 1")
         with pytest.raises(NotADirectoryError):
-            scanner.scan(file_path)
+            scanner.scan(f)
 
 
 # ---------------------------------------------------------------------------
-# Testes de diretórios ignorados
+# Testes de diretórios ignorados — parametrizado
 # ---------------------------------------------------------------------------
 
 
 class TestIgnoreDirs:
     """Testes de aplicação da lista de diretórios ignorados."""
 
-    def test_git_dir_is_ignored(self, scanner: RepositoryScanner, repo: Path) -> None:
-        """Arquivos dentro de .git não devem aparecer no resultado."""
+    @pytest.mark.parametrize("ignored_dir", [".git", "node_modules", "dist", "build"])
+    def test_default_ignored_dirs_are_excluded(
+        self, scanner: RepositoryScanner, repo: Path, ignored_dir: str
+    ) -> None:
+        """Diretórios padrão ignorados não devem aparecer nos resultados."""
         result = scanner.scan(repo)
         paths = [str(f.relative_path) for f in result.files]
-        assert not any(".git" in p for p in paths)
-
-    def test_node_modules_is_ignored(self, scanner: RepositoryScanner, repo: Path) -> None:
-        """Arquivos dentro de node_modules não devem aparecer no resultado."""
-        result = scanner.scan(repo)
-        paths = [str(f.relative_path) for f in result.files]
-        assert not any("node_modules" in p for p in paths)
-
-    def test_dist_is_ignored(self, scanner: RepositoryScanner, repo: Path) -> None:
-        """Arquivos dentro de dist não devem aparecer no resultado."""
-        result = scanner.scan(repo)
-        paths = [str(f.relative_path) for f in result.files]
-        assert not any("dist" in p for p in paths)
-
-    def test_build_is_ignored(self, scanner: RepositoryScanner, repo: Path) -> None:
-        """Arquivos dentro de build não devem aparecer no resultado."""
-        result = scanner.scan(repo)
-        paths = [str(f.relative_path) for f in result.files]
-        assert not any("build" in p for p in paths)
+        assert not any(ignored_dir in p for p in paths)
 
     def test_custom_ignore_dir(self, repo: Path) -> None:
         """Diretório customizado deve ser ignorado quando adicionado à lista."""
@@ -194,10 +166,9 @@ class TestIgnoreDirs:
         paths = [str(f.relative_path) for f in result.files]
         assert not any("meu_cache" in p for p in paths)
 
-    def test_custom_ignore_merges_with_defaults(self, repo: Path) -> None:
+    def test_custom_ignore_merges_with_defaults(self) -> None:
         """Ignorar customizado deve mesclar com DEFAULT_IGNORE_DIRS."""
         scanner = RepositoryScanner(ignore_dirs={"extra_dir"})
-        # .git ainda deve ser ignorado
         assert ".git" in scanner.ignore_dirs
         assert "extra_dir" in scanner.ignore_dirs
 
@@ -212,43 +183,51 @@ class TestIgnoreDirs:
         cache_dir.mkdir()
         (cache_dir / "main.cpython-311.pyc").write_bytes(b"\x00\x00")
 
-        scanner = RepositoryScanner()
-        result = scanner.scan(repo)
+        result = RepositoryScanner().scan(repo)
         paths = [str(f.relative_path) for f in result.files]
         assert not any("__pycache__" in p for p in paths)
 
+    def test_egg_info_wildcard_is_ignored(self, repo: Path) -> None:
+        """Diretórios com padrão *.egg-info devem ser ignorados."""
+        egg_dir = repo / "mypackage.egg-info"
+        egg_dir.mkdir()
+        (egg_dir / "PKG-INFO").write_text("Name: mypackage\n")
+        (egg_dir / "setup.py").write_text("# setup\n")
+
+        result = RepositoryScanner().scan(repo)
+        paths = [str(f.relative_path) for f in result.files]
+        assert not any("egg-info" in p for p in paths)
+
 
 # ---------------------------------------------------------------------------
-# Testes de metadados dos arquivos
+# Testes de metadados — parametrizado por linguagem
 # ---------------------------------------------------------------------------
 
 
 class TestFileMetadata:
     """Testes de coleta de metadados dos arquivos."""
 
-    def test_metadata_language_python(self, scanner: RepositoryScanner, repo: Path) -> None:
-        """Arquivo .py deve ter linguagem 'python'."""
+    @pytest.mark.parametrize(
+        "extension, expected_language",
+        [
+            (".py", "python"),
+            (".java", "java"),
+            (".js", "javascript"),
+            (".ts", "typescript"),
+        ],
+    )
+    def test_metadata_language_by_extension(
+        self,
+        scanner: RepositoryScanner,
+        repo: Path,
+        extension: str,
+        expected_language: str,
+    ) -> None:
+        """Cada extensão deve mapear para a linguagem correta nos metadados."""
         result = scanner.scan(repo)
-        py_files = [f for f in result.files if f.extension == ".py"]
-        assert all(f.language == "python" for f in py_files)
-
-    def test_metadata_language_java(self, scanner: RepositoryScanner, repo: Path) -> None:
-        """Arquivo .java deve ter linguagem 'java'."""
-        result = scanner.scan(repo)
-        java_files = [f for f in result.files if f.extension == ".java"]
-        assert all(f.language == "java" for f in java_files)
-
-    def test_metadata_language_javascript(self, scanner: RepositoryScanner, repo: Path) -> None:
-        """Arquivo .js deve ter linguagem 'javascript'."""
-        result = scanner.scan(repo)
-        js_files = [f for f in result.files if f.extension == ".js"]
-        assert all(f.language == "javascript" for f in js_files)
-
-    def test_metadata_language_typescript(self, scanner: RepositoryScanner, repo: Path) -> None:
-        """Arquivo .ts deve ter linguagem 'typescript'."""
-        result = scanner.scan(repo)
-        ts_files = [f for f in result.files if f.extension == ".ts"]
-        assert all(f.language == "typescript" for f in ts_files)
+        files = [f for f in result.files if f.extension == extension]
+        assert len(files) > 0, f"Nenhum arquivo {extension} encontrado"
+        assert all(f.language == expected_language for f in files)
 
     def test_metadata_size_bytes_positive(self, scanner: RepositoryScanner, repo: Path) -> None:
         """size_bytes deve ser maior que zero para arquivos não vazios."""
@@ -264,20 +243,17 @@ class TestFileMetadata:
         """line_count deve refletir o número real de linhas do arquivo."""
         root = tmp_path / "proj"
         root.mkdir()
-        content = "line1\nline2\nline3\n"
-        (root / "test.py").write_text(content)
+        (root / "test.py").write_text("line1\nline2\nline3\n")
 
-        scanner = RepositoryScanner()
-        result = scanner.scan(root)
+        result = RepositoryScanner().scan(root)
         assert len(result.files) == 1
         assert result.files[0].line_count == 3
 
-    def test_metadata_relative_path(self, scanner: RepositoryScanner, repo: Path) -> None:
+    def test_metadata_relative_path_is_not_absolute(self, scanner: RepositoryScanner, repo: Path) -> None:
         """relative_path deve ser relativo à raiz do repositório."""
         result = scanner.scan(repo)
         for f in result.files:
             assert not f.relative_path.is_absolute()
-            assert str(f.relative_path) != str(f.path)
 
     def test_metadata_absolute_path_exists(self, scanner: RepositoryScanner, repo: Path) -> None:
         """path deve ser absoluto e o arquivo deve existir."""
@@ -310,8 +286,7 @@ class TestFileSizeLimit:
         """Arquivo maior que max_file_size_bytes deve ser ignorado."""
         root = tmp_path / "proj"
         root.mkdir()
-        big_file = root / "big.py"
-        big_file.write_bytes(b"x = 1\n" * 200)  # ~1200 bytes
+        (root / "big.py").write_bytes(b"x = 1\n" * 200)
 
         scanner = RepositoryScanner(max_file_size_bytes=100)
         result = scanner.scan(root)
@@ -322,34 +297,30 @@ class TestFileSizeLimit:
         """Arquivo dentro do limite deve ser incluído normalmente."""
         root = tmp_path / "proj"
         root.mkdir()
-        small_file = root / "small.py"
-        small_file.write_text("x = 1\n")
+        (root / "small.py").write_text("x = 1\n")
 
-        scanner = RepositoryScanner(max_file_size_bytes=1024)
-        result = scanner.scan(root)
+        result = RepositoryScanner(max_file_size_bytes=1024).scan(root)
         assert result.total_files == 1
 
 
 # ---------------------------------------------------------------------------
-# Testes de extensões suportadas
+# Testes de extensões suportadas — parametrizado
 # ---------------------------------------------------------------------------
 
 
 class TestSupportedExtensions:
     """Testes de filtragem por extensão."""
 
-    def test_unsupported_extension_is_skipped(self, tmp_path: Path) -> None:
+    @pytest.mark.parametrize("unsupported_file", ["notes.txt", "data.json", "style.css"])
+    def test_unsupported_extension_is_skipped(self, tmp_path: Path, unsupported_file: str) -> None:
         """Arquivos com extensão não suportada devem ser ignorados."""
         root = tmp_path / "proj"
         root.mkdir()
-        (root / "notes.txt").write_text("hello\n")
-        (root / "data.json").write_text("{}\n")
-        (root / "style.css").write_text("body {}\n")
+        (root / unsupported_file).write_text("content\n")
 
-        scanner = RepositoryScanner()
-        result = scanner.scan(root)
+        result = RepositoryScanner().scan(root)
         assert result.total_files == 0
-        assert result.skipped_files == 3
+        assert result.skipped_files == 1
 
     def test_custom_supported_extensions(self, tmp_path: Path) -> None:
         """Scanner com extensões customizadas deve respeitar a lista fornecida."""
@@ -358,8 +329,7 @@ class TestSupportedExtensions:
         (root / "script.rb").write_text("puts 'hello'\n")
         (root / "main.py").write_text("print('hi')\n")
 
-        scanner = RepositoryScanner(supported_extensions={".rb"})
-        result = scanner.scan(root)
+        result = RepositoryScanner(supported_extensions={".rb"}).scan(root)
         names = {f.relative_path.name for f in result.files}
         assert names == {"script.rb"}
 
@@ -370,10 +340,150 @@ class TestSupportedExtensions:
         for ext in SUPPORTED_EXTENSIONS:
             (root / f"file{ext}").write_text("// code\n")
 
-        scanner = RepositoryScanner()
-        result = scanner.scan(root)
+        result = RepositoryScanner().scan(root)
         found_exts = {f.extension for f in result.files}
         assert found_exts == SUPPORTED_EXTENSIONS
+
+
+# ---------------------------------------------------------------------------
+# Testes de PermissionError
+# ---------------------------------------------------------------------------
+
+
+class TestPermissionError:
+    """Testes de tratamento de erros de permissão."""
+
+    def test_permission_error_on_file_does_not_crash_scanner(self, tmp_path: Path) -> None:
+        """PermissionError ao ler um arquivo não deve interromper a varredura."""
+        root = tmp_path / "proj"
+        root.mkdir()
+        (root / "readable.py").write_text("def ok(): pass\n")
+        (root / "unreadable.py").write_text("def secret(): pass\n")
+
+        original_stat = Path.stat
+
+        def mock_stat(self: Path, **kwargs: object) -> object:
+            if self.name == "unreadable.py":
+                raise PermissionError(f"Acesso negado: {self}")
+            return original_stat(self, **kwargs)
+
+        with patch.object(Path, "stat", mock_stat):
+            result = RepositoryScanner().scan(root)
+
+        # O arquivo legível deve ser encontrado
+        names = {f.relative_path.name for f in result.files}
+        assert "readable.py" in names
+        # O arquivo sem permissão deve ser contado como ignorado
+        assert result.skipped_files >= 1
+
+    def test_permission_error_on_count_lines_returns_zero(self, tmp_path: Path) -> None:
+        """PermissionError ao contar linhas deve retornar 0 sem lançar exceção."""
+        root = tmp_path / "proj"
+        root.mkdir()
+        (root / "file.py").write_text("x = 1\n")
+
+        original_open = open
+
+        def mock_open(path: object, mode: str = "r", **kwargs: object) -> object:
+            if mode == "rb" and "file.py" in str(path):
+                raise PermissionError("Acesso negado")
+            return original_open(path, mode, **kwargs)  # type: ignore[call-overload]
+
+        with patch("builtins.open", mock_open):
+            result = RepositoryScanner().scan(root)
+
+        # O arquivo deve aparecer com line_count = 0
+        assert len(result.files) == 1
+        assert result.files[0].line_count == 0
+
+
+# ---------------------------------------------------------------------------
+# Testes de symlinks
+# ---------------------------------------------------------------------------
+
+
+class TestSymlinks:
+    """Testes de proteção contra symlinks."""
+
+    @pytest.mark.skipif(sys.platform == "win32", reason="Symlinks requerem privilégios no Windows")
+    def test_symlink_dir_is_ignored_by_default(self, tmp_path: Path) -> None:
+        """Diretório symlink não deve ser seguido quando follow_symlinks=False."""
+        root = tmp_path / "proj"
+        root.mkdir()
+        (root / "main.py").write_text("def main(): pass\n")
+
+        # Cria um diretório real com arquivo e um symlink apontando para ele
+        real_dir = tmp_path / "real_lib"
+        real_dir.mkdir()
+        (real_dir / "lib.py").write_text("def lib(): pass\n")
+        link_dir = root / "linked_lib"
+        link_dir.symlink_to(real_dir)
+
+        scanner = RepositoryScanner(follow_symlinks=False)
+        result = scanner.scan(root)
+        names = {f.relative_path.name for f in result.files}
+
+        # lib.py não deve aparecer — o symlink foi ignorado
+        assert "lib.py" not in names
+        assert "main.py" in names
+
+    @pytest.mark.skipif(sys.platform == "win32", reason="Symlinks requerem privilégios no Windows")
+    def test_symlink_dir_is_followed_when_enabled(self, tmp_path: Path) -> None:
+        """Diretório symlink deve ser seguido quando follow_symlinks=True."""
+        root = tmp_path / "proj"
+        root.mkdir()
+        (root / "main.py").write_text("def main(): pass\n")
+
+        real_dir = tmp_path / "real_lib"
+        real_dir.mkdir()
+        (real_dir / "lib.py").write_text("def lib(): pass\n")
+        link_dir = root / "linked_lib"
+        link_dir.symlink_to(real_dir)
+
+        scanner = RepositoryScanner(follow_symlinks=True)
+        result = scanner.scan(root)
+        names = {f.relative_path.name for f in result.files}
+
+        assert "lib.py" in names
+        assert "main.py" in names
+
+
+# ---------------------------------------------------------------------------
+# Testes de iter_files() — lazy/streaming
+# ---------------------------------------------------------------------------
+
+
+class TestIterFiles:
+    """Testes do método iter_files() para avaliação preguiçosa."""
+
+    def test_iter_files_yields_file_metadata(self, scanner: RepositoryScanner, repo: Path) -> None:
+        """iter_files() deve gerar instâncias de FileMetadata."""
+        for metadata in scanner.iter_files(repo):
+            assert isinstance(metadata, FileMetadata)
+
+    def test_iter_files_same_files_as_scan(self, scanner: RepositoryScanner, repo: Path) -> None:
+        """iter_files() deve retornar os mesmos arquivos que scan()."""
+        scan_names = {f.relative_path.name for f in scanner.scan(repo).files}
+        iter_names = {f.relative_path.name for f in scanner.iter_files(repo)}
+        assert scan_names == iter_names
+
+    def test_iter_files_invalid_directory_raises(self, scanner: RepositoryScanner, tmp_path: Path) -> None:
+        """iter_files() deve levantar NotADirectoryError para caminho inválido."""
+        with pytest.raises(NotADirectoryError):
+            list(scanner.iter_files(tmp_path / "nao_existe"))
+
+    def test_iter_files_is_generator(self, scanner: RepositoryScanner, repo: Path) -> None:
+        """iter_files() deve retornar um generator (avaliação lazy)."""
+        import types
+        result = scanner.iter_files(repo)
+        assert isinstance(result, types.GeneratorType)
+
+    def test_iter_files_respects_ignore_dirs(self, repo: Path) -> None:
+        """iter_files() deve respeitar a lista de diretórios ignorados."""
+        scanner = RepositoryScanner()
+        paths = [str(f.relative_path) for f in scanner.iter_files(repo)]
+        assert not any(".git" in p for p in paths)
+        assert not any("node_modules" in p for p in paths)
 
 
 # ---------------------------------------------------------------------------
@@ -384,27 +494,23 @@ class TestSupportedExtensions:
 class TestScannerProperties:
     """Testes das propriedades públicas do scanner."""
 
-    def test_ignore_dirs_contains_defaults(self) -> None:
+    @pytest.mark.parametrize("expected_dir", [".git", "node_modules", "dist", "build", ".cache", "__pycache__"])
+    def test_ignore_dirs_contains_defaults(self, expected_dir: str) -> None:
         """ignore_dirs deve conter todos os diretórios padrão."""
-        scanner = RepositoryScanner()
-        for d in [".git", "node_modules", "dist", "build", ".cache", "__pycache__"]:
-            assert d in scanner.ignore_dirs
+        assert expected_dir in RepositoryScanner().ignore_dirs
 
-    def test_supported_extensions_contains_defaults(self) -> None:
+    @pytest.mark.parametrize("expected_ext", [".py", ".java", ".js", ".ts"])
+    def test_supported_extensions_contains_defaults(self, expected_ext: str) -> None:
         """supported_extensions deve conter as extensões padrão."""
-        scanner = RepositoryScanner()
-        for ext in [".py", ".java", ".js", ".ts"]:
-            assert ext in scanner.supported_extensions
+        assert expected_ext in RepositoryScanner().supported_extensions
 
     def test_ignore_dirs_is_frozenset(self) -> None:
         """ignore_dirs deve ser imutável (frozenset)."""
-        scanner = RepositoryScanner()
-        assert isinstance(scanner.ignore_dirs, frozenset)
+        assert isinstance(RepositoryScanner().ignore_dirs, frozenset)
 
     def test_supported_extensions_is_frozenset(self) -> None:
         """supported_extensions deve ser imutável (frozenset)."""
-        scanner = RepositoryScanner()
-        assert isinstance(scanner.supported_extensions, frozenset)
+        assert isinstance(RepositoryScanner().supported_extensions, frozenset)
 
 
 # ---------------------------------------------------------------------------
@@ -419,9 +525,7 @@ class TestEmptyDirectory:
         """Diretório vazio deve retornar ScanResult com zero arquivos."""
         root = tmp_path / "empty"
         root.mkdir()
-
-        scanner = RepositoryScanner()
-        result = scanner.scan(root)
+        result = RepositoryScanner().scan(root)
         assert result.total_files == 0
         assert result.files == []
 
@@ -431,7 +535,5 @@ class TestEmptyDirectory:
         root.mkdir()
         (root / "README.md").write_text("# Docs\n")
         (root / "config.yaml").write_text("key: value\n")
-
-        scanner = RepositoryScanner()
-        result = scanner.scan(root)
+        result = RepositoryScanner().scan(root)
         assert result.total_files == 0

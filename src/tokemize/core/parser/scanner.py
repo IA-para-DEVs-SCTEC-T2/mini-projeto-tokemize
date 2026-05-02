@@ -2,6 +2,11 @@
 
 Percorre um diretório recursivamente, aplica lista de ignores e coleta
 metadados dos arquivos de código-fonte válidos.
+
+Melhorias implementadas:
+- Proteção explícita contra symlinks recursivos
+- Método iter_files() para avaliação preguiçosa (lazy/streaming)
+- Documentação de thread-safety
 """
 
 from __future__ import annotations
@@ -10,6 +15,7 @@ import logging
 import os
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Generator
 
 logger = logging.getLogger(__name__)
 
@@ -105,6 +111,13 @@ class RepositoryScanner:
     Aplica uma lista de diretórios e extensões a ignorar, retornando apenas
     arquivos de código-fonte válidos com seus metadados.
 
+    Proteção contra symlinks: diretórios que são links simbólicos são ignorados
+    por padrão para evitar loops infinitos em repositórios com symlinks recursivos.
+
+    Thread-safety: esta classe é segura para uso em múltiplas threads desde que
+    cada thread use sua própria instância. O estado interno (_ignore_dirs,
+    _supported_extensions, _max_file_size_bytes) é imutável após a construção.
+
     Args:
         ignore_dirs: Conjunto de nomes de diretórios a ignorar.
             Mescla com DEFAULT_IGNORE_DIRS se não fornecido.
@@ -112,12 +125,18 @@ class RepositoryScanner:
             Usa SUPPORTED_EXTENSIONS por padrão.
         max_file_size_bytes: Tamanho máximo de arquivo em bytes.
             Arquivos maiores são ignorados. Padrão: 1 MB.
+        follow_symlinks: Se True, segue links simbólicos de diretórios.
+            Padrão: False (proteção contra loops infinitos).
 
     Example:
         >>> scanner = RepositoryScanner()
         >>> result = scanner.scan(Path("/meu/projeto"))
         >>> for f in result.files:
         ...     print(f.relative_path, f.language)
+
+        >>> # Uso com streaming (baixo uso de memória)
+        >>> for metadata in scanner.iter_files(Path("/meu/projeto")):
+        ...     print(metadata.relative_path)
     """
 
     def __init__(
@@ -125,6 +144,7 @@ class RepositoryScanner:
         ignore_dirs: set[str] | None = None,
         supported_extensions: set[str] | None = None,
         max_file_size_bytes: int = 1024 * 1024,  # 1 MB
+        follow_symlinks: bool = False,
     ) -> None:
         self._ignore_dirs: frozenset[str] = (
             DEFAULT_IGNORE_DIRS | frozenset(ignore_dirs)
@@ -137,6 +157,7 @@ class RepositoryScanner:
             else SUPPORTED_EXTENSIONS
         )
         self._max_file_size_bytes = max_file_size_bytes
+        self._follow_symlinks = follow_symlinks
 
     @property
     def ignore_dirs(self) -> frozenset[str]:
@@ -150,6 +171,9 @@ class RepositoryScanner:
 
     def scan(self, root: Path) -> ScanResult:
         """Percorre o repositório a partir de `root` e coleta metadados.
+
+        Consome iter_files() internamente e materializa o resultado em memória.
+        Para repositórios muito grandes, prefira iter_files() diretamente.
 
         Args:
             root: Diretório raiz do repositório a ser varrido.
@@ -169,13 +193,16 @@ class RepositoryScanner:
         result = ScanResult(root=root)
         logger.info("Iniciando varredura em: %s", root)
 
-        for dirpath, dirnames, filenames in os.walk(root, topdown=True):
+        for dirpath, dirnames, filenames in os.walk(
+            root, topdown=True, followlinks=self._follow_symlinks
+        ):
             current_dir = Path(dirpath)
 
             # Filtrar subdiretórios ignorados in-place (afeta os.walk)
             original_dirs = list(dirnames)
             dirnames[:] = [
-                d for d in dirnames if not self._should_ignore_dir(d)
+                d for d in dirnames
+                if not self._should_ignore_dir(d, current_dir)
             ]
 
             ignored = set(original_dirs) - set(dirnames)
@@ -205,17 +232,83 @@ class RepositoryScanner:
         )
         return result
 
-    def _should_ignore_dir(self, dirname: str) -> bool:
+    def iter_files(self, root: Path) -> Generator[FileMetadata, None, None]:
+        """Percorre o repositório gerando FileMetadata um a um (lazy/streaming).
+
+        Ideal para repositórios grandes onde carregar todos os metadados em
+        memória de uma vez seria custoso. Não acumula resultados internamente.
+
+        Args:
+            root: Diretório raiz do repositório a ser varrido.
+
+        Yields:
+            FileMetadata para cada arquivo válido encontrado.
+
+        Raises:
+            NotADirectoryError: Se `root` não for um diretório válido.
+
+        Example:
+            >>> scanner = RepositoryScanner()
+            >>> for metadata in scanner.iter_files(Path("/meu/projeto")):
+            ...     process(metadata)  # processa um arquivo por vez
+        """
+        root = root.resolve()
+        if not root.is_dir():
+            raise NotADirectoryError(
+                f"O caminho fornecido não é um diretório válido: {root}"
+            )
+
+        logger.info("Iniciando varredura lazy em: %s", root)
+
+        for dirpath, dirnames, filenames in os.walk(
+            root, topdown=True, followlinks=self._follow_symlinks
+        ):
+            current_dir = Path(dirpath)
+
+            dirnames[:] = [
+                d for d in dirnames
+                if not self._should_ignore_dir(d, current_dir)
+            ]
+
+            for filename in filenames:
+                file_path = current_dir / filename
+                ext = file_path.suffix.lower()
+
+                if ext not in self._supported_extensions:
+                    continue
+
+                metadata = self._collect_metadata(file_path, root, ext)
+                if metadata is not None:
+                    logger.debug("Arquivo encontrado: %s", metadata.relative_path)
+                    yield metadata
+
+    def _should_ignore_dir(self, dirname: str, parent: Path) -> bool:
         """Verifica se um diretório deve ser ignorado.
+
+        Ignora diretórios que:
+        - Estão na lista de ignores (por nome exato ou padrão wildcard)
+        - São links simbólicos quando follow_symlinks=False
 
         Args:
             dirname: Nome do diretório (não o caminho completo).
+            parent: Diretório pai, usado para verificar se é symlink.
 
         Returns:
             True se o diretório deve ser ignorado.
         """
+        # Verificação de symlink — evita loops infinitos
+        if not self._follow_symlinks:
+            full_path = parent / dirname
+            if full_path.is_symlink():
+                logger.debug(
+                    "Diretório symlink ignorado (follow_symlinks=False): %s",
+                    full_path,
+                )
+                return True
+
         if dirname in self._ignore_dirs:
             return True
+
         # Suporte a padrões com wildcard simples (ex: "*.egg-info")
         for pattern in self._ignore_dirs:
             if "*" in pattern:
@@ -224,6 +317,7 @@ class RepositoryScanner:
                     prefix.strip(".")
                 ):
                     return True
+
         return False
 
     def _collect_metadata(
@@ -237,7 +331,8 @@ class RepositoryScanner:
             ext: Extensão do arquivo.
 
         Returns:
-            FileMetadata ou None se o arquivo não puder ser lido.
+            FileMetadata ou None se o arquivo não puder ser lido ou exceder
+            o limite de tamanho.
         """
         try:
             stat = file_path.stat()

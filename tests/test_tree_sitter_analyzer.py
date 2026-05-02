@@ -533,3 +533,50 @@ class TestArtifactInvariants:
         artifacts = analyzer.analyze(f)
         for a in artifacts:
             assert a.content.strip() != ""
+
+
+# ---------------------------------------------------------------------------
+# Testes diretos do modelo Artifact (__post_init__)
+# ---------------------------------------------------------------------------
+
+
+class TestArtifactModel:
+    """Testes das validações do dataclass Artifact."""
+
+    def test_artifact_invalid_start_end_line_raises(self) -> None:
+        """Artifact com start_line > end_line deve levantar ValueError."""
+        with pytest.raises(ValueError, match="start_line"):
+            Artifact(
+                name="foo",
+                type="function",
+                start_line=10,
+                end_line=5,  # inválido
+                language="python",
+                content="def foo(): pass",
+            )
+
+    def test_artifact_invalid_type_raises(self) -> None:
+        """Artifact com type inválido deve levantar ValueError."""
+        with pytest.raises(ValueError, match="Tipo inválido"):
+            Artifact(
+                name="foo",
+                type="variable",  # inválido
+                start_line=1,
+                end_line=1,
+                language="python",
+                content="x = 1",
+            )
+
+    def test_artifact_valid_construction(self) -> None:
+        """Artifact com dados válidos deve ser criado sem exceção."""
+        a = Artifact(
+            name="my_func",
+            type="function",
+            start_line=1,
+            end_line=3,
+            language="python",
+            content="def my_func(): pass",
+        )
+        assert a.name == "my_func"
+        assert a.type == "function"
+        assert a.file_path == ""  # default
