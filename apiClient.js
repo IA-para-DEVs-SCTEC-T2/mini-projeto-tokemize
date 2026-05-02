@@ -108,19 +108,20 @@ function buildUrl(path, params = {}) {
 
 /**
  * Busca estatísticas do repositório na GitHub API.
+ * Reutiliza a resposta de /contributors para evitar chamada duplicada.
  *
  * @param {string} owner
  * @param {string} repo
  * @param {number} [timeout=8000]
- * @returns {Promise<RepoStats>}
+ * @returns {Promise<{ stats: RepoStats, contributors: Contributor[] }>}
  */
-export async function fetchRepoStats(owner, repo, timeout = 8000) {
+export async function fetchRepoData(owner, repo, timeout = 8000) {
   const base = `/repos/${owner}/${repo}`;
 
   const commitsUrl      = buildUrl(`${base}/commits`,      { per_page: 1 });
   const openPRsUrl      = buildUrl(`${base}/pulls`,        { state: 'open',   per_page: 1 });
   const closedPRsUrl    = buildUrl(`${base}/pulls`,        { state: 'closed', per_page: 1 });
-  const contributorsUrl = buildUrl(`${base}/contributors`, { per_page: 1 });
+  const contributorsUrl = buildUrl(`${base}/contributors`, { per_page: 30 }); // body completo, serve para stats e cards
   const branchesUrl     = buildUrl(`${base}/branches`,     { per_page: 1 });
   const lastCommitUrl   = buildUrl(`${base}/commits`,      { sha: 'main', per_page: 1 });
 
@@ -143,50 +144,45 @@ export async function fetchRepoStats(owner, repo, timeout = 8000) {
   const totalCommits   = parseTotalFromLinkHeader(commitsRes);
   const openPRs        = parseTotalFromLinkHeader(openPRsRes);
   const closedPRs      = parseTotalFromLinkHeader(closedPRsRes);
-  const contributors   = parseTotalFromLinkHeader(contributorsRes);
   const activeBranches = parseTotalFromLinkHeader(branchesRes);
+
+  // Lê o body de contributors uma única vez — serve para contar e para os cards
+  const contributorsData = await contributorsRes.json();
+  const contributorsList = Array.isArray(contributorsData) ? contributorsData : [];
+
+  // Conta pelo Link header se houver mais de 30; senão usa o tamanho do array
+  const contributorsTotal = parseTotalFromLinkHeader(contributorsRes) > 1
+    ? parseTotalFromLinkHeader(contributorsRes)
+    : contributorsList.length;
 
   const lastCommitData = await lastCommitRes.json();
   const lastCommitAt = Array.isArray(lastCommitData) && lastCommitData.length > 0
     ? lastCommitData[0]?.commit?.author?.date ?? new Date(0).toISOString()
     : new Date(0).toISOString();
 
-  return { totalCommits, openPRs, closedPRs, contributors, activeBranches, lastCommitAt };
-}
+  const stats = {
+    totalCommits,
+    openPRs,
+    closedPRs,
+    contributors: contributorsTotal,
+    activeBranches,
+    lastCommitAt,
+  };
 
-// ---------------------------------------------------------------------------
-// fetchContributors
-// ---------------------------------------------------------------------------
-
-/**
- * @typedef {Object} Contributor
- * @property {string} login
- * @property {number} contributions
- * @property {string} avatar_url
- * @property {string} html_url
- */
-
-/**
- * Busca a lista de contribuidores do repositório com total de commits.
- *
- * @param {string} owner
- * @param {string} repo
- * @param {number} [timeout=8000]
- * @returns {Promise<Contributor[]>}
- */
-export async function fetchContributors(owner, repo, timeout = 8000) {
-  const url = buildUrl(`/repos/${owner}/${repo}/contributors`, { per_page: 30 });
-  const response = await fetchWithTimeout(url, timeout);
-  const data = await response.json();
-
-  if (!Array.isArray(data)) return [];
-
-  return data.map((c) => ({
+  const contributors = contributorsList.map((c) => ({
     login:         c.login ?? 'unknown',
     contributions: c.contributions ?? 0,
     avatar_url:    c.avatar_url ?? '',
     html_url:      c.html_url ?? `https://github.com/${c.login}`,
   }));
+
+  return { stats, contributors };
+}
+
+// Mantidos para compatibilidade com testes existentes
+export async function fetchRepoStats(owner, repo, timeout = 8000) {
+  const { stats } = await fetchRepoData(owner, repo, timeout);
+  return stats;
 }
 
 // ---------------------------------------------------------------------------
