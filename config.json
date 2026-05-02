@@ -101,21 +101,20 @@
     "projectNumber": 5,
     "totalCards": 16,
     "cardsByStatus": {
-      "In Progress": 1,
       "Revision": 1,
-      "Done": 6,
+      "Done": 7,
       "Todo": 8
     },
-    "lastUpdatedAt": "2026-05-02T20:47:57.964032+00:00"
+    "lastUpdatedAt": "2026-05-02T21:13:05.052596+00:00"
   },
   "repoStats": {
-    "totalCommits": 52,
-    "openPRs": 3,
-    "closedPRs": 20,
+    "totalCommits": 53,
+    "openPRs": 2,
+    "closedPRs": 22,
     "contributors": 7,
-    "activeBranches": 8,
-    "lastCommitAt": "2026-05-02T19:14:10Z",
-    "fetchedAt": "2026-05-02T20:47:57.964129+00:00"
+    "activeBranches": 9,
+    "lastCommitAt": "2026-05-02T20:47:57Z",
+    "fetchedAt": "2026-05-02T21:13:05.052698+00:00"
   },
   "contributors": [
     {
@@ -126,7 +125,7 @@
     },
     {
       "avatar_url": "https://avatars.githubusercontent.com/in/15368?v=4",
-      "contributions": 8,
+      "contributions": 9,
       "html_url": "https://github.com/apps/github-actions",
       "login": "github-actions[bot]"
     },
@@ -164,17 +163,17 @@
   "prAuthors": [
     {
       "login": "jrcosta",
-      "total": 12,
+      "total": 13,
       "open": 1,
-      "closed": 11,
+      "closed": 12,
       "avatar_url": "https://avatars.githubusercontent.com/u/22981568?v=4",
       "html_url": "https://github.com/jrcosta"
     },
     {
       "login": "gvmertens",
       "total": 3,
-      "open": 1,
-      "closed": 2,
+      "open": 0,
+      "closed": 3,
       "avatar_url": "https://avatars.githubusercontent.com/u/14351143?v=4",
       "html_url": "https://github.com/gvmertens"
     },
