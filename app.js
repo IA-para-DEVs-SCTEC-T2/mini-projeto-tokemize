@@ -43,14 +43,15 @@ const cache = new CacheStore();
  * @param {string} owner
  * @param {string} repo
  * @param {number} timeout
+ * @param {Object|null} boardMetrics - Métricas do board vindas do config.json
  */
-async function loadAndRenderStats(owner, repo, timeout) {
+async function loadAndRenderStats(owner, repo, timeout, boardMetrics = null) {
   const isStale = cache.isStale(CACHE_KEY_STATS, DEFAULT_TTL);
 
   if (!isStale) {
     // Cache válido — usar diretamente, sem chamar a API
     const cached = cache.get(CACHE_KEY_STATS);
-    renderStats(cached, false);
+    renderStats(cached, false, boardMetrics);
     return;
   }
 
@@ -58,16 +59,16 @@ async function loadAndRenderStats(owner, repo, timeout) {
   try {
     const stats = await fetchRepoStats(owner, repo, timeout);
     cache.set(CACHE_KEY_STATS, stats);
-    renderStats(stats, false);
+    renderStats(stats, false, boardMetrics);
   } catch (err) {
     // API falhou — verificar se há cache stale disponível
     const cached = cache.get(CACHE_KEY_STATS);
     if (cached !== null) {
       // Cache stale disponível: exibir com indicador de desatualização
-      renderStats(cached, true);
+      renderStats(cached, true, boardMetrics);
     } else {
       // Sem cache e API falhou: exibir estado de erro
-      renderStats(null, false);
+      renderStats(null, false, boardMetrics);
     }
   }
 }
@@ -156,7 +157,7 @@ async function init() {
 
   // ── 3. Carregar dados dinâmicos da API (ou cache) em paralelo ─────────────
   await Promise.allSettled([
-    loadAndRenderStats(owner, repo, timeout),
+    loadAndRenderStats(owner, repo, timeout, config.boardMetrics ?? null),
     loadAndRenderContributionGraph(owner, repo, timeout),
   ]);
 
