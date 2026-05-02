@@ -10,7 +10,7 @@
 /** TTL padrão: 1 hora em milissegundos. */
 export const DEFAULT_TTL = 3600000;
 
-const KEY_PREFIX = 'tokemize_cache_';
+const KEY_PREFIX = 'tokemize_cache_v2_';
 
 export class CacheStore {
   /**
