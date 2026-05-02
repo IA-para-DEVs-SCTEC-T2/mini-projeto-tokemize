@@ -104,6 +104,89 @@
       "Done": 2,
       "Todo": 15
     },
-    "lastUpdatedAt": "2026-05-02T02:38:35.071012+00:00"
-  }
+    "lastUpdatedAt": "2026-05-02T02:48:26.686502+00:00"
+  },
+  "repoStats": {
+    "totalCommits": 39,
+    "openPRs": 0,
+    "closedPRs": 17,
+    "contributors": 5,
+    "activeBranches": 5,
+    "lastCommitAt": "2026-05-02T02:47:37Z",
+    "fetchedAt": "2026-05-02T02:48:26.686561+00:00"
+  },
+  "contributors": [
+    {
+      "avatar_url": "https://avatars.githubusercontent.com/u/22981568?v=4",
+      "contributions": 16,
+      "html_url": "https://github.com/jrcosta",
+      "login": "jrcosta"
+    },
+    {
+      "avatar_url": "https://avatars.githubusercontent.com/u/14351143?v=4",
+      "contributions": 5,
+      "html_url": "https://github.com/gvmertens",
+      "login": "gvmertens"
+    },
+    {
+      "avatar_url": "https://avatars.githubusercontent.com/u/65471872?v=4",
+      "contributions": 4,
+      "html_url": "https://github.com/edunotari",
+      "login": "edunotari"
+    },
+    {
+      "avatar_url": "https://avatars.githubusercontent.com/u/85140484?v=4",
+      "contributions": 3,
+      "html_url": "https://github.com/PauloSergioLR",
+      "login": "PauloSergioLR"
+    },
+    {
+      "avatar_url": "https://avatars.githubusercontent.com/u/237599657?v=4",
+      "contributions": 2,
+      "html_url": "https://github.com/samuelmarquesgit",
+      "login": "samuelmarquesgit"
+    }
+  ],
+  "prAuthors": [
+    {
+      "login": "jrcosta",
+      "total": 11,
+      "open": 0,
+      "closed": 11,
+      "avatar_url": "https://avatars.githubusercontent.com/u/22981568?v=4",
+      "html_url": "https://github.com/jrcosta"
+    },
+    {
+      "login": "samuelmarquesgit",
+      "total": 2,
+      "open": 1,
+      "closed": 1,
+      "avatar_url": "https://avatars.githubusercontent.com/u/237599657?v=4",
+      "html_url": "https://github.com/samuelmarquesgit"
+    },
+    {
+      "login": "edunotari",
+      "total": 2,
+      "open": 0,
+      "closed": 2,
+      "avatar_url": "https://avatars.githubusercontent.com/u/65471872?v=4",
+      "html_url": "https://github.com/edunotari"
+    },
+    {
+      "login": "gvmertens",
+      "total": 2,
+      "open": 0,
+      "closed": 2,
+      "avatar_url": "https://avatars.githubusercontent.com/u/14351143?v=4",
+      "html_url": "https://github.com/gvmertens"
+    },
+    {
+      "login": "PauloSergioLR",
+      "total": 1,
+      "open": 0,
+      "closed": 1,
+      "avatar_url": "https://avatars.githubusercontent.com/u/85140484?v=4",
+      "html_url": "https://github.com/PauloSergioLR"
+    }
+  ]
 }
