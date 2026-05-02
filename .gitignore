@@ -1,3 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Testing
+.pytest_cache/
+.hypothesis/
+htmlcov/
+.coverage
+coverage.xml
+
+# Build / packaging
+dist/
+build/
+*.egg-info/
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
