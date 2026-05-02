@@ -1,149 +1,54 @@
 /**
  * app.js — Entry point da Showcase_Page do Tokemize
  *
- * Fluxo de inicialização:
- * 1. Carregar config.json via loadConfig()
- * 2. Renderizar seções estáticas IMEDIATAMENTE (hero, pipeline, techStack, progress, team)
- *    sem esperar pela API
- * 3. Para stats e contribution graph:
- *    a. Verificar CacheStore antes de chamar a API
- *    b. Se cache válido (< 1 hora): usar dados do cache, stale=false
- *    c. Se cache stale: chamar API, atualizar cache, stale=false
- *    d. Se API falhar com cache stale: usar cache, stale=true
- *    e. Se API falhar sem cache: renderStats(null, false) — estado de erro
- * 4. Para avatares da equipe:
- *    a. Buscar avatares de todos os membros via fetchAvatarUrl
- *    b. Montar Map<string, string> e re-renderizar equipe com avatares
- *    c. Se falhar, manter renderização sem avatares (fallback já está no renderTeam)
- *
- * Requirements: 2.6, 2.7, 8.2
+ * Todos os dados dinâmicos (stats, contributors, PRs) são lidos do config.json,
+ * que é atualizado pelo workflow update-board-metrics.yml a cada 6 horas.
+ * Zero chamadas à GitHub API no browser — sem risco de rate limit.
  */
 
-import { loadConfig }          from './configLoader.js';
-import { CacheStore, DEFAULT_TTL } from './cacheStore.js';
-import { fetchRepoData, fetchPRsByAuthor, fetchAvatarUrl } from './apiClient.js';
-
-import { renderHero }              from './components/hero.js';
-import { renderStats }             from './components/stats.js';
+import { loadConfig }            from './configLoader.js';
+import { renderHero }            from './components/hero.js';
+import { renderStats }           from './components/stats.js';
 import { renderContributionGraph, renderPRGraph } from './components/contributionGraph.js';
-import { renderProgressTracker }   from './components/progressTracker.js';
-import { renderTechStack }         from './components/techStack.js';
-import { renderTeam }              from './components/team.js';
+import { renderProgressTracker } from './components/progressTracker.js';
+import { renderTechStack }       from './components/techStack.js';
+import { renderTeam }            from './components/team.js';
 
-// Chaves de cache
-const CACHE_KEY_STATS    = 'repo_stats';
-const CACHE_KEY_ACTIVITY = 'commit_activity';
-const CACHE_KEY_PRS      = 'pr_authors';
-
-const cache = new CacheStore();
-
-/**
- * Carrega stats e contributors em uma única bateria de chamadas à API,
- * depois renderiza ambas as seções.
- *
- * @param {string} owner
- * @param {string} repo
- * @param {number} timeout
- * @param {Object|null} boardMetrics
- */
-async function loadAndRenderRepoData(owner, repo, timeout, boardMetrics = null) {
-  const statsStale    = cache.isStale(CACHE_KEY_STATS,    DEFAULT_TTL);
-  const activityStale = cache.isStale(CACHE_KEY_ACTIVITY, DEFAULT_TTL);
-
-  if (!statsStale && !activityStale) {
-    renderStats(cache.get(CACHE_KEY_STATS), false, boardMetrics);
-    renderContributionGraph(cache.get(CACHE_KEY_ACTIVITY));
-    return;
-  }
-
-  try {
-    const { stats, contributors } = await fetchRepoData(owner, repo, timeout);
-    cache.set(CACHE_KEY_STATS,    stats);
-    cache.set(CACHE_KEY_ACTIVITY, contributors);
-    renderStats(stats, false, boardMetrics);
-    renderContributionGraph(contributors);
-  } catch (err) {
-    const cachedStats        = cache.get(CACHE_KEY_STATS);
-    const cachedContributors = cache.get(CACHE_KEY_ACTIVITY);
-    renderStats(cachedStats ?? null, cachedStats !== null, boardMetrics);
-    if (cachedContributors) renderContributionGraph(cachedContributors);
-  }
-}
-
-async function loadAndRenderPRs(owner, repo, timeout) {
-  try {
-    const prStale = cache.isStale(CACHE_KEY_PRS, DEFAULT_TTL);
-    if (!prStale) {
-      renderPRGraph(cache.get(CACHE_KEY_PRS));
-      return;
-    }
-    const prAuthors = await fetchPRsByAuthor(owner, repo, timeout);
-    cache.set(CACHE_KEY_PRS, prAuthors);
-    renderPRGraph(prAuthors);
-  } catch (err) {
-    const cachedPRs = cache.get(CACHE_KEY_PRS);
-    renderPRGraph(cachedPRs ?? []);
-  }
-}
-
-/**
- * Busca avatares de todos os membros da equipe e re-renderiza a seção de equipe.
- * Se qualquer avatar falhar, o membro usa o avatar padrão (fallback no renderTeam).
- *
- * @param {import('./configLoader.js').TeamMember[]} members
- * @param {number} timeout
- */
-async function loadAndRenderTeamAvatars(members, timeout) {
-  const avatarEntries = await Promise.allSettled(
-    members.map(async (member) => {
-      const url = await fetchAvatarUrl(member.github, timeout);
-      return [member.github, url];
-    }),
-  );
-
-  /** @type {Map<string, string>} */
-  const avatars = new Map();
-  for (const result of avatarEntries) {
-    if (result.status === 'fulfilled') {
-      const [username, url] = result.value;
-      avatars.set(username, url);
-    }
-    // Membros com falha ficam fora do mapa → renderTeam usa avatar padrão
-  }
-
-  renderTeam(members, avatars);
-}
-
-/**
- * Ponto de entrada principal da Showcase_Page.
- * Orquestra o carregamento de configuração, renderização estática e chamadas à API.
- */
 async function init() {
-  // ── 1. Carregar configuração ──────────────────────────────────────────────
   const config = await loadConfig();
 
-  const owner   = config.repo?.owner   ?? 'tokemize-org';
-  const repo    = config.repo?.name    ?? 'tokemize';
-  const timeout = config.repo?.apiTimeout ?? 8000;
-
-  // ── 2. Renderizar seções estáticas IMEDIATAMENTE ──────────────────────────
-  // Não aguarda a API — o usuário vê o conteúdo estático instantaneamente.
+  // ── Seções estáticas ──────────────────────────────────────────────────────
   renderHero(config);
   renderTechStack(config);
   renderProgressTracker(config.modules);
 
-  // Renderização inicial da equipe sem avatares (fallback para avatar padrão)
-  renderTeam(config.team, new Map());
+  // ── Equipe com avatares do config.json ────────────────────────────────────
+  // contributors tem avatar_url; monta o mapa para renderTeam
+  const avatars = new Map();
+  for (const c of (config.contributors ?? [])) {
+    if (c.login && c.avatar_url) avatars.set(c.login, c.avatar_url);
+  }
+  // Também mapeia pelo github username dos membros da equipe
+  for (const member of (config.team ?? [])) {
+    if (!avatars.has(member.github)) {
+      const match = (config.contributors ?? []).find(c => c.login === member.github);
+      if (match) avatars.set(member.github, match.avatar_url);
+    }
+  }
+  renderTeam(config.team, avatars);
 
-  // ── 3. Carregar dados dinâmicos da API em paralelo ───────────────────────
-  await Promise.allSettled([
-    loadAndRenderRepoData(owner, repo, timeout, config.boardMetrics ?? null),
-    loadAndRenderPRs(owner, repo, timeout),
-  ]);
+  // ── Stats do repositório ──────────────────────────────────────────────────
+  if (config.repoStats) {
+    renderStats(config.repoStats, false, config.boardMetrics ?? null);
+  } else {
+    renderStats(null, false, config.boardMetrics ?? null);
+  }
 
-  // ── 4. Buscar avatares e re-renderizar equipe ─────────────────────────────
-  // Feito após os dados principais para não bloquear o carregamento das stats.
-  await loadAndRenderTeamAvatars(config.team, timeout);
+  // ── Commits por contribuidor ──────────────────────────────────────────────
+  renderContributionGraph(config.contributors ?? []);
+
+  // ── PRs por contribuidor ──────────────────────────────────────────────────
+  renderPRGraph(config.prAuthors ?? []);
 }
 
 document.addEventListener('DOMContentLoaded', init);
