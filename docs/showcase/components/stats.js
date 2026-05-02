@@ -1,7 +1,7 @@
 /**
  * stats.js — Componente de renderização da seção de Estatísticas
  *
- * Popula o elemento #stats-grid com os dados de RepoStats.
+ * Popula o elemento #stats-grid com os dados de RepoStats e boardMetrics.
  * Requirements: 2.1, 2.2, 2.3, 2.4, 2.5, 2.6
  */
 
@@ -57,8 +57,9 @@ function createStatCard(label, value) {
  *
  * @param {import('../apiClient.js').RepoStats|null} stats
  * @param {boolean} stale
+ * @param {Object|null} [boardMetrics] - Métricas do Project board (do config.json)
  */
-export function renderStats(stats, stale) {
+export function renderStats(stats, stale, boardMetrics = null) {
   const grid = document.getElementById('stats-grid');
   if (!grid) {
     return;
@@ -84,8 +85,8 @@ export function renderStats(stats, stale) {
     grid.appendChild(banner);
   }
 
-  // Seis cards de estatísticas
-  const cards = [
+  // Cards de estatísticas do repositório (via API em tempo real)
+  const repoCards = [
     { label: 'Total de Commits',  value: stats.totalCommits },
     { label: 'PRs Abertos',       value: stats.openPRs },
     { label: 'PRs Fechados',      value: stats.closedPRs },
@@ -94,7 +95,39 @@ export function renderStats(stats, stale) {
     { label: 'Último Commit',     value: formatDate(stats.lastCommitAt) },
   ];
 
-  for (const { label, value } of cards) {
+  for (const { label, value } of repoCards) {
     grid.appendChild(createStatCard(label, value));
+  }
+
+  // Cards do Project Board (via config.json atualizado pelo workflow)
+  if (boardMetrics && boardMetrics.totalCards > 0) {
+    const separator = document.createElement('div');
+    separator.className = 'stats-section-separator';
+
+    const boardTitle = document.createElement('h3');
+    boardTitle.className = 'stats-section-title';
+    boardTitle.textContent = boardMetrics.projectTitle
+      ? `Board: ${boardMetrics.projectTitle}`
+      : 'Project Board';
+
+    grid.appendChild(separator);
+    grid.appendChild(boardTitle);
+
+    // Card com total de itens no board
+    grid.appendChild(createStatCard('Total de Cards', boardMetrics.totalCards));
+
+    // Um card por status (ex: "Todo", "In Progress", "Done")
+    const statusEntries = Object.entries(boardMetrics.cardsByStatus ?? {});
+    for (const [status, count] of statusEntries) {
+      grid.appendChild(createStatCard(status, count));
+    }
+
+    // Timestamp da última atualização do board
+    if (boardMetrics.lastUpdatedAt) {
+      const updatedEl = document.createElement('p');
+      updatedEl.className = 'board-updated-at';
+      updatedEl.textContent = `Board atualizado em: ${formatDate(boardMetrics.lastUpdatedAt)}`;
+      grid.appendChild(updatedEl);
+    }
   }
 }
