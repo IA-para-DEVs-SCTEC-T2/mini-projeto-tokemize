@@ -139,3 +139,98 @@ export function renderContributionGraph(contributors) {
   container.appendChild(grid);
 }
 
+
+/**
+ * @typedef {Object} PRAuthor
+ * @property {string} login
+ * @property {number} total
+ * @property {number} open
+ * @property {number} closed
+ * @property {string} avatar_url
+ * @property {string} html_url
+ */
+
+/**
+ * Renderiza o painel de PRs por contribuidor no elemento #pr-graph-container.
+ * Layout idêntico ao de commits, com barra proporcional ao total de PRs.
+ *
+ * @param {PRAuthor[]} authors
+ */
+export function renderPRGraph(authors) {
+  const container = document.getElementById('pr-graph-container');
+  if (!container) return;
+
+  container.innerHTML = '';
+
+  if (!Array.isArray(authors) || authors.length === 0) {
+    const empty = document.createElement('p');
+    empty.className = 'loading-placeholder';
+    empty.textContent = 'Nenhum dado de pull requests disponível.';
+    container.appendChild(empty);
+    return;
+  }
+
+  const colorMap   = getAuthorColors(authors.map(a => a.login));
+  const totalPRs   = authors.reduce((sum, a) => sum + a.total, 0);
+
+  const grid = document.createElement('div');
+  grid.className = 'contributors-grid';
+  grid.setAttribute('role', 'list');
+  grid.setAttribute('aria-label', `Pull requests por contribuidor`);
+
+  for (const author of authors) {
+    const color = colorMap.get(author.login) ?? '#8b949e';
+    const pct   = totalPRs > 0 ? Math.round((author.total / totalPRs) * 100) : 0;
+
+    const card = document.createElement('div');
+    card.className = 'contributor-card';
+    card.setAttribute('role', 'listitem');
+    card.style.setProperty('--contributor-color', color);
+
+    const img = document.createElement('img');
+    img.className   = 'contributor-avatar';
+    img.src         = author.avatar_url;
+    img.alt         = `Avatar de ${author.login}`;
+    img.width       = 64;
+    img.height      = 64;
+    img.loading     = 'lazy';
+    img.onerror     = () => { img.src = 'assets/default-avatar.svg'; };
+
+    const info = document.createElement('div');
+    info.className  = 'contributor-info';
+
+    const name = document.createElement('a');
+    name.className  = 'contributor-name';
+    name.href       = author.html_url;
+    name.target     = '_blank';
+    name.rel        = 'noopener noreferrer';
+    name.textContent = author.login;
+
+    const counts = document.createElement('span');
+    counts.className  = 'contributor-commits';
+    counts.textContent = `${author.total} PRs  ·  ${author.open} abertos  ·  ${author.closed} fechados`;
+
+    const barTrack = document.createElement('div');
+    barTrack.className = 'contributor-bar-track';
+    barTrack.setAttribute('role', 'progressbar');
+    barTrack.setAttribute('aria-valuenow', String(pct));
+    barTrack.setAttribute('aria-valuemin', '0');
+    barTrack.setAttribute('aria-valuemax', '100');
+    barTrack.setAttribute('aria-label', `${pct}% dos PRs`);
+
+    const barFill = document.createElement('div');
+    barFill.className           = 'contributor-bar-fill';
+    barFill.style.width         = `${pct}%`;
+    barFill.style.backgroundColor = color;
+
+    barTrack.appendChild(barFill);
+    info.appendChild(name);
+    info.appendChild(counts);
+    info.appendChild(barTrack);
+    card.appendChild(img);
+    card.appendChild(info);
+    grid.appendChild(card);
+  }
+
+  container.appendChild(grid);
+}
