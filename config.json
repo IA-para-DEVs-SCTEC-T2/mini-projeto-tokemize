@@ -106,16 +106,16 @@
       "Todo": 12,
       "In Progress": 1
     },
-    "lastUpdatedAt": "2026-05-02T07:45:03.556283+00:00"
+    "lastUpdatedAt": "2026-05-02T13:13:05.562139+00:00"
   },
   "repoStats": {
-    "totalCommits": 43,
+    "totalCommits": 44,
     "openPRs": 2,
     "closedPRs": 17,
     "contributors": 6,
     "activeBranches": 6,
-    "lastCommitAt": "2026-05-02T02:59:17Z",
-    "fetchedAt": "2026-05-02T07:45:03.556382+00:00"
+    "lastCommitAt": "2026-05-02T07:45:03Z",
+    "fetchedAt": "2026-05-02T13:13:05.562246+00:00"
   },
   "contributors": [
     {
@@ -131,16 +131,16 @@
       "login": "gvmertens"
     },
     {
+      "avatar_url": "https://avatars.githubusercontent.com/in/15368?v=4",
+      "contributions": 4,
+      "html_url": "https://github.com/apps/github-actions",
+      "login": "github-actions[bot]"
+    },
+    {
       "avatar_url": "https://avatars.githubusercontent.com/u/65471872?v=4",
       "contributions": 4,
       "html_url": "https://github.com/edunotari",
       "login": "edunotari"
-    },
-    {
-      "avatar_url": "https://avatars.githubusercontent.com/in/15368?v=4",
-      "contributions": 3,
-      "html_url": "https://github.com/apps/github-actions",
-      "login": "github-actions[bot]"
     },
     {
       "avatar_url": "https://avatars.githubusercontent.com/u/85140484?v=4",
