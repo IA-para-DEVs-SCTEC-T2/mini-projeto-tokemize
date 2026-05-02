@@ -21,7 +21,7 @@
 
 import { loadConfig }          from './configLoader.js';
 import { CacheStore, DEFAULT_TTL } from './cacheStore.js';
-import { fetchRepoStats, fetchContributors, fetchAvatarUrl } from './apiClient.js';
+import { fetchRepoData, fetchAvatarUrl } from './apiClient.js';
 
 import { renderHero }              from './components/hero.js';
 import { renderStats }             from './components/stats.js';
@@ -37,67 +37,41 @@ const CACHE_KEY_ACTIVITY = 'commit_activity';
 const cache = new CacheStore();
 
 /**
- * Carrega e renderiza as estatísticas do repositório.
- * Consulta o CacheStore antes de chamar a API.
+ * Carrega stats e contributors em uma única bateria de chamadas à API,
+ * depois renderiza ambas as seções.
  *
  * @param {string} owner
  * @param {string} repo
  * @param {number} timeout
- * @param {Object|null} boardMetrics - Métricas do board vindas do config.json
+ * @param {Object|null} boardMetrics
  */
-async function loadAndRenderStats(owner, repo, timeout, boardMetrics = null) {
-  const isStale = cache.isStale(CACHE_KEY_STATS, DEFAULT_TTL);
+async function loadAndRenderRepoData(owner, repo, timeout, boardMetrics = null) {
+  const statsStale       = cache.isStale(CACHE_KEY_STATS,    DEFAULT_TTL);
+  const activityStale    = cache.isStale(CACHE_KEY_ACTIVITY, DEFAULT_TTL);
 
-  if (!isStale) {
-    // Cache válido — usar diretamente, sem chamar a API
-    const cached = cache.get(CACHE_KEY_STATS);
-    renderStats(cached, false, boardMetrics);
-    return;
-  }
-
-  // Cache stale ou ausente — tentar a API
-  try {
-    const stats = await fetchRepoStats(owner, repo, timeout);
-    cache.set(CACHE_KEY_STATS, stats);
-    renderStats(stats, false, boardMetrics);
-  } catch (err) {
-    // API falhou — verificar se há cache stale disponível
-    const cached = cache.get(CACHE_KEY_STATS);
-    if (cached !== null) {
-      // Cache stale disponível: exibir com indicador de desatualização
-      renderStats(cached, true, boardMetrics);
-    } else {
-      // Sem cache e API falhou: exibir estado de erro
-      renderStats(null, false, boardMetrics);
-    }
-  }
-}
-
-/**
- * Carrega e renderiza o painel de contribuidores.
- *
- * @param {string} owner
- * @param {string} repo
- * @param {number} timeout
- */
-async function loadAndRenderContributionGraph(owner, repo, timeout) {
-  const isStale = cache.isStale(CACHE_KEY_ACTIVITY, DEFAULT_TTL);
-
-  if (!isStale) {
-    const cached = cache.get(CACHE_KEY_ACTIVITY);
-    renderContributionGraph(cached);
+  // Se ambos os caches são válidos, usa cache direto
+  if (!statsStale && !activityStale) {
+    renderStats(cache.get(CACHE_KEY_STATS), false, boardMetrics);
+    renderContributionGraph(cache.get(CACHE_KEY_ACTIVITY));
     return;
   }
 
   try {
-    const contributors = await fetchContributors(owner, repo, timeout);
+    // Uma única bateria de 6 chamadas paralelas retorna stats + contributors
+    const { stats, contributors } = await fetchRepoData(owner, repo, timeout);
+
+    cache.set(CACHE_KEY_STATS,    stats);
     cache.set(CACHE_KEY_ACTIVITY, contributors);
+
+    renderStats(stats, false, boardMetrics);
     renderContributionGraph(contributors);
   } catch (err) {
-    const cached = cache.get(CACHE_KEY_ACTIVITY);
-    if (cached !== null) {
-      renderContributionGraph(cached);
-    }
+    // Fallback para cache stale se disponível
+    const cachedStats       = cache.get(CACHE_KEY_STATS);
+    const cachedContributors = cache.get(CACHE_KEY_ACTIVITY);
+
+    renderStats(cachedStats ?? null, cachedStats !== null, boardMetrics);
+    if (cachedContributors) renderContributionGraph(cachedContributors);
   }
 }
 
@@ -151,10 +125,7 @@ async function init() {
   renderTeam(config.team, new Map());
 
   // ── 3. Carregar dados dinâmicos da API (ou cache) em paralelo ─────────────
-  await Promise.allSettled([
-    loadAndRenderStats(owner, repo, timeout, config.boardMetrics ?? null),
-    loadAndRenderContributionGraph(owner, repo, timeout),
-  ]);
+  await loadAndRenderRepoData(owner, repo, timeout, config.boardMetrics ?? null);
 
   // ── 4. Buscar avatares e re-renderizar equipe ─────────────────────────────
   // Feito após os dados principais para não bloquear o carregamento das stats.
