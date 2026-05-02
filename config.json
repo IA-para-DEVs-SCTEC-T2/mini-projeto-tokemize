@@ -101,21 +101,21 @@
     "projectNumber": 5,
     "totalCards": 17,
     "cardsByStatus": {
-      "In Progress": 1,
+      "In Progress": 2,
       "Revision": 2,
       "Done": 4,
-      "Todo": 10
+      "Todo": 9
     },
-    "lastUpdatedAt": "2026-05-02T16:09:10.342700+00:00"
+    "lastUpdatedAt": "2026-05-02T19:00:21.300618+00:00"
   },
   "repoStats": {
-    "totalCommits": 47,
-    "openPRs": 0,
+    "totalCommits": 48,
+    "openPRs": 3,
     "closedPRs": 19,
     "contributors": 6,
-    "activeBranches": 7,
-    "lastCommitAt": "2026-05-02T13:52:51Z",
-    "fetchedAt": "2026-05-02T16:09:10.342802+00:00"
+    "activeBranches": 8,
+    "lastCommitAt": "2026-05-02T16:09:10Z",
+    "fetchedAt": "2026-05-02T19:00:21.300715+00:00"
   },
   "contributors": [
     {
@@ -126,7 +126,7 @@
     },
     {
       "avatar_url": "https://avatars.githubusercontent.com/in/15368?v=4",
-      "contributions": 6,
+      "contributions": 7,
       "html_url": "https://github.com/apps/github-actions",
       "login": "github-actions[bot]"
     },
@@ -158,8 +158,8 @@
   "prAuthors": [
     {
       "login": "jrcosta",
-      "total": 11,
-      "open": 0,
+      "total": 12,
+      "open": 1,
       "closed": 11,
       "avatar_url": "https://avatars.githubusercontent.com/u/22981568?v=4",
       "html_url": "https://github.com/jrcosta"
@@ -195,6 +195,14 @@
       "closed": 2,
       "avatar_url": "https://avatars.githubusercontent.com/u/14351143?v=4",
       "html_url": "https://github.com/gvmertens"
+    },
+    {
+      "login": "Copilot",
+      "total": 1,
+      "open": 1,
+      "closed": 0,
+      "avatar_url": "https://avatars.githubusercontent.com/in/1143301?v=4",
+      "html_url": "https://github.com/apps/copilot-swe-agent"
     }
   ]
 }
