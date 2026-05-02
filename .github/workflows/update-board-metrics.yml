@@ -209,7 +209,7 @@ jobs:
           if git diff --cached --quiet; then
             echo "Nenhuma alteração nas métricas. Nada a commitar."
           else
-            git commit -m "chore: sync board metrics and module status [skip ci]"
+            git commit -m "chore: sync board metrics and module status"
             git push origin main
             echo "config.json atualizado e enviado para main."
           fi
