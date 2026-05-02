@@ -47,10 +47,9 @@ const cache = new CacheStore();
  * @param {Object|null} boardMetrics
  */
 async function loadAndRenderRepoData(owner, repo, timeout, boardMetrics = null) {
-  const statsStale       = cache.isStale(CACHE_KEY_STATS,    DEFAULT_TTL);
-  const activityStale    = cache.isStale(CACHE_KEY_ACTIVITY, DEFAULT_TTL);
+  const statsStale    = cache.isStale(CACHE_KEY_STATS,    DEFAULT_TTL);
+  const activityStale = cache.isStale(CACHE_KEY_ACTIVITY, DEFAULT_TTL);
 
-  // Se ambos os caches são válidos, usa cache direto
   if (!statsStale && !activityStale) {
     renderStats(cache.get(CACHE_KEY_STATS), false, boardMetrics);
     renderContributionGraph(cache.get(CACHE_KEY_ACTIVITY));
@@ -58,36 +57,32 @@ async function loadAndRenderRepoData(owner, repo, timeout, boardMetrics = null) 
   }
 
   try {
-    // Uma única bateria de 6 chamadas paralelas retorna stats + contributors
     const { stats, contributors } = await fetchRepoData(owner, repo, timeout);
-
     cache.set(CACHE_KEY_STATS,    stats);
     cache.set(CACHE_KEY_ACTIVITY, contributors);
-
     renderStats(stats, false, boardMetrics);
     renderContributionGraph(contributors);
   } catch (err) {
-    // Fallback para cache stale se disponível
     const cachedStats        = cache.get(CACHE_KEY_STATS);
     const cachedContributors = cache.get(CACHE_KEY_ACTIVITY);
-
     renderStats(cachedStats ?? null, cachedStats !== null, boardMetrics);
     if (cachedContributors) renderContributionGraph(cachedContributors);
   }
+}
 
-  // PRs por autor — chamada separada para não bloquear as stats
+async function loadAndRenderPRs(owner, repo, timeout) {
   try {
     const prStale = cache.isStale(CACHE_KEY_PRS, DEFAULT_TTL);
     if (!prStale) {
       renderPRGraph(cache.get(CACHE_KEY_PRS));
-    } else {
-      const prAuthors = await fetchPRsByAuthor(owner, repo, timeout);
-      cache.set(CACHE_KEY_PRS, prAuthors);
-      renderPRGraph(prAuthors);
+      return;
     }
+    const prAuthors = await fetchPRsByAuthor(owner, repo, timeout);
+    cache.set(CACHE_KEY_PRS, prAuthors);
+    renderPRGraph(prAuthors);
   } catch (err) {
     const cachedPRs = cache.get(CACHE_KEY_PRS);
-    if (cachedPRs) renderPRGraph(cachedPRs);
+    renderPRGraph(cachedPRs ?? []);
   }
 }
 
@@ -140,8 +135,11 @@ async function init() {
   // Renderização inicial da equipe sem avatares (fallback para avatar padrão)
   renderTeam(config.team, new Map());
 
-  // ── 3. Carregar dados dinâmicos da API (ou cache) em paralelo ─────────────
-  await loadAndRenderRepoData(owner, repo, timeout, config.boardMetrics ?? null);
+  // ── 3. Carregar dados dinâmicos da API em paralelo ───────────────────────
+  await Promise.allSettled([
+    loadAndRenderRepoData(owner, repo, timeout, config.boardMetrics ?? null),
+    loadAndRenderPRs(owner, repo, timeout),
+  ]);
 
   // ── 4. Buscar avatares e re-renderizar equipe ─────────────────────────────
   // Feito após os dados principais para não bloquear o carregamento das stats.
