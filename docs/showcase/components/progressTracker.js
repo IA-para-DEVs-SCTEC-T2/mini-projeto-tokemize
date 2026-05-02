@@ -15,20 +15,22 @@ const STATUS_LABELS = {
 };
 
 /**
- * Calcula o percentual de módulos concluídos.
+ * Calcula o percentual de progresso considerando:
+ * - "done"        → 100% de contribuição
+ * - "in_progress" → 50% de contribuição
+ * - "planned"     → 0%
  *
- * @typedef {Object} ModuleConfig
- * @property {string} id - Identificador do módulo
- * @property {string} label - Nome de exibição
- * @property {"done"|"in_progress"|"planned"} status - Status do módulo
- *
- * @param {ModuleConfig[]} modules - Array de módulos
- * @returns {number} Percentual de módulos com status "done" (0–100)
+ * @param {ModuleConfig[]} modules
+ * @returns {number} Percentual (0–100)
  */
 export function calculateProgress(modules) {
   if (!modules || modules.length === 0) return 0;
-  const doneCount = modules.filter(m => m.status === 'done').length;
-  return (doneCount / modules.length) * 100;
+  const total = modules.reduce((sum, m) => {
+    if (m.status === 'done')        return sum + 1;
+    if (m.status === 'in_progress') return sum + 0.5;
+    return sum;
+  }, 0);
+  return (total / modules.length) * 100;
 }
 
 /**
