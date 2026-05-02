@@ -249,6 +249,22 @@ class TestFileMetadata:
         assert len(result.files) == 1
         assert result.files[0].line_count == 3
 
+    def test_metadata_char_count_positive(self, scanner: RepositoryScanner, repo: Path) -> None:
+        """char_count deve ser maior que zero para arquivos não vazios."""
+        result = scanner.scan(repo)
+        assert all(f.char_count > 0 for f in result.files)
+
+    def test_metadata_char_count_accuracy(self, tmp_path: Path) -> None:
+        """char_count deve refletir o número real de caracteres do arquivo."""
+        root = tmp_path / "proj"
+        root.mkdir()
+        content = "abc\ndef\n"  # 8 caracteres
+        (root / "test.py").write_text(content, encoding="utf-8")
+
+        result = RepositoryScanner().scan(root)
+        assert len(result.files) == 1
+        assert result.files[0].char_count == len(content)
+
     def test_metadata_relative_path_is_not_absolute(self, scanner: RepositoryScanner, repo: Path) -> None:
         """relative_path deve ser relativo à raiz do repositório."""
         result = scanner.scan(repo)
@@ -537,3 +553,29 @@ class TestEmptyDirectory:
         (root / "config.yaml").write_text("key: value\n")
         result = RepositoryScanner().scan(root)
         assert result.total_files == 0
+
+
+# ---------------------------------------------------------------------------
+# Teste de import público — src/tokemize/scanner.py
+# ---------------------------------------------------------------------------
+
+
+class TestPublicImport:
+    """Garante que o entregável src/tokemize/scanner.py está acessível."""
+
+    def test_import_from_tokemize_scanner(self) -> None:
+        """RepositoryScanner deve ser importável via tokemize.scanner."""
+        from tokemize.scanner import RepositoryScanner as RS  # noqa: PLC0415
+        assert RS is RepositoryScanner
+
+    def test_scanner_via_public_module(self, tmp_path: Path) -> None:
+        """Scanner importado via tokemize.scanner deve funcionar normalmente."""
+        from tokemize.scanner import RepositoryScanner as RS  # noqa: PLC0415
+
+        root = tmp_path / "proj"
+        root.mkdir()
+        (root / "main.py").write_text("def main(): pass\n")
+
+        result = RS().scan(root)
+        assert result.total_files == 1
+        assert result.files[0].char_count > 0

@@ -76,6 +76,7 @@ class FileMetadata:
         extension: Extensão do arquivo (ex: ".py").
         size_bytes: Tamanho do arquivo em bytes.
         line_count: Número de linhas do arquivo.
+        char_count: Número de caracteres (codepoints UTF-8) do arquivo.
     """
 
     path: Path
@@ -84,6 +85,7 @@ class FileMetadata:
     extension: str
     size_bytes: int
     line_count: int = 0
+    char_count: int = 0
 
 
 @dataclass
@@ -347,6 +349,7 @@ class RepositoryScanner:
                 return None
 
             line_count = self._count_lines(file_path)
+            char_count = self._count_chars(file_path)
             language = EXTENSION_TO_LANGUAGE.get(ext, "unknown")
 
             return FileMetadata(
@@ -356,6 +359,7 @@ class RepositoryScanner:
                 extension=ext,
                 size_bytes=size,
                 line_count=line_count,
+                char_count=char_count,
             )
         except (OSError, PermissionError) as exc:
             logger.warning("Não foi possível ler o arquivo %s: %s", file_path, exc)
@@ -373,5 +377,19 @@ class RepositoryScanner:
         try:
             with open(file_path, "rb") as f:
                 return sum(1 for _ in f)
+        except (OSError, PermissionError):
+            return 0
+
+    def _count_chars(self, file_path: Path) -> int:
+        """Conta o número de caracteres (codepoints UTF-8) de um arquivo.
+
+        Args:
+            file_path: Caminho do arquivo.
+
+        Returns:
+            Número de caracteres ou 0 em caso de erro de leitura.
+        """
+        try:
+            return len(file_path.read_text(encoding="utf-8", errors="replace"))
         except (OSError, PermissionError):
             return 0
