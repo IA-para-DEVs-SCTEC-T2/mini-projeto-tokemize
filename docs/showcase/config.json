@@ -2,8 +2,8 @@
   "projectName": "Tokemize",
   "tagline": "Uma camada intermediária que melhora como usamos IA",
   "repo": {
-    "owner": "tokemize-org",
-    "name": "tokemize",
+    "owner": "IA-para-DEVs-SCTEC-T2",
+    "name": "mini-projeto-tokemize",
     "apiTimeout": 8000
   },
   "problems": [
@@ -35,7 +35,7 @@
     { "name": "Eduardo Notari",            "github": "edunotari"        }
   ],
   "links": {
-    "repo": "https://github.com/tokemize-org/tokemize",
-    "readme": "https://github.com/tokemize-org/tokemize#readme"
+    "repo": "https://github.com/IA-para-DEVs-SCTEC-T2/mini-projeto-tokemize",
+    "readme": "https://github.com/IA-para-DEVs-SCTEC-T2/mini-projeto-tokemize#readme"
   }
 }
