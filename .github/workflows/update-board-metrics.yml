@@ -5,7 +5,6 @@ on:
     # Roda a cada 6 horas
     - cron: '0 */6 * * *'
   workflow_dispatch:
-    # Permite execução manual pelo GitHub Actions UI
 
 concurrency:
   group: update-board-metrics
@@ -25,33 +24,43 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          # Usa o PAT para que o commit dispare o deploy.yml
           token: ${{ secrets.PROJECT_TOKEN }}
 
       - name: Fetch board metrics via GraphQL
         id: board
         env:
           GH_TOKEN: ${{ secrets.PROJECT_TOKEN }}
-          OWNER: ${{ github.repository_owner }}
-          REPO: ${{ github.event.repository.name }}
+          ORG: ${{ github.repository_owner }}
+          # Número do projeto visível na URL: /projects/5
+          PROJECT_NUMBER: 5
         run: |
-          # ── Busca o primeiro Project v2 do repositório ──────────────────────
+          # O projeto é da organização, não do repositório
           PROJECT_QUERY=$(cat <<'EOF'
-          query($owner: String!, $repo: String!) {
-            repository(owner: $owner, name: $repo) {
-              projectsV2(first: 1) {
-                nodes {
-                  id
-                  title
-                  number
-                  items(first: 100) {
-                    totalCount
-                    nodes {
-                      fieldValues(first: 10) {
-                        nodes {
-                          ... on ProjectV2ItemFieldSingleSelectValue {
-                            name
-                            field { ... on ProjectV2SingleSelectField { name } }
+          query($org: String!, $number: Int!) {
+            organization(login: $org) {
+              projectV2(number: $number) {
+                id
+                title
+                number
+                items(first: 100) {
+                  totalCount
+                  nodes {
+                    content {
+                      ... on Issue {
+                        title
+                        number
+                      }
+                      ... on PullRequest {
+                        title
+                        number
+                      }
+                    }
+                    fieldValues(first: 10) {
+                      nodes {
+                        ... on ProjectV2ItemFieldSingleSelectValue {
+                          name
+                          field {
+                            ... on ProjectV2SingleSelectField { name }
                           }
                         }
                       }
@@ -66,12 +75,12 @@ jobs:
 
           RESPONSE=$(gh api graphql \
             -f query="$PROJECT_QUERY" \
-            -f owner="$OWNER" \
-            -f repo="$REPO")
+            -F number="$PROJECT_NUMBER" \
+            -f org="$ORG")
 
-          echo "graphql_response<<EOF" >> "$GITHUB_OUTPUT"
+          echo "graphql_response<<GRAPHQL_EOF" >> "$GITHUB_OUTPUT"
           echo "$RESPONSE" >> "$GITHUB_OUTPUT"
-          echo "EOF" >> "$GITHUB_OUTPUT"
+          echo "GRAPHQL_EOF" >> "$GITHUB_OUTPUT"
 
       - name: Parse metrics and update config.json
         env:
@@ -91,57 +100,103 @@ jobs:
               print(f"::warning::Falha ao parsear resposta GraphQL: {e}")
               sys.exit(0)
 
-          # ── Extrai dados do projeto ──────────────────────────────────────────
-          try:
-              projects = (
-                  response
-                  .get("data", {})
-                  .get("repository", {})
-                  .get("projectsV2", {})
-                  .get("nodes", [])
-              )
-          except AttributeError:
-              projects = []
+          # Verifica erros GraphQL
+          if "errors" in response:
+              print(f"::warning::Erros GraphQL: {response['errors']}")
+              sys.exit(0)
 
-          board_metrics = {
-              "projectTitle": None,
-              "projectNumber": None,
-              "totalCards": 0,
-              "cardsByStatus": {},
-              "lastUpdatedAt": datetime.now(timezone.utc).isoformat()
+          # ── Extrai dados do projeto ──────────────────────────────────────────
+          project = (
+              response
+              .get("data", {})
+              .get("organization", {})
+              .get("projectV2")
+          )
+
+          if not project:
+              print("::warning::Projeto não encontrado. Verifique o número do projeto e o token.")
+              sys.exit(0)
+
+          # ── Mapeia status do board para o formato do config.json ─────────────
+          # Colunas do board → status interno
+          STATUS_MAP = {
+              "Todo":        "planned",
+              "In Progress": "in_progress",
+              "Blocked":     "in_progress",   # Blocked = ainda em andamento
+              "Revision":    "in_progress",   # Revision = ainda em andamento
+              "Done":        "done",
           }
 
-          if projects:
-              project = projects[0]
-              board_metrics["projectTitle"]  = project.get("title")
-              board_metrics["projectNumber"] = project.get("number")
-              board_metrics["totalCards"]    = project.get("items", {}).get("totalCount", 0)
+          # Conta cards por coluna
+          cards_by_status = {}
+          # Mapeia título do card → status interno
+          card_status_by_title = {}
 
-              # Conta cards por status (campo "Status" do board)
-              status_counts = {}
-              for item in project.get("items", {}).get("nodes", []):
-                  for field_value in item.get("fieldValues", {}).get("nodes", []):
-                      field_info = field_value.get("field", {})
-                      if field_info.get("name", "").lower() == "status":
-                          status_name = field_value.get("name", "Sem status")
-                          status_counts[status_name] = status_counts.get(status_name, 0) + 1
+          for item in project.get("items", {}).get("nodes", []):
+              content = item.get("content") or {}
+              card_title = content.get("title", "")
 
-              board_metrics["cardsByStatus"] = status_counts
-          else:
-              print("::warning::Nenhum Project v2 encontrado no repositório.")
+              for field_value in item.get("fieldValues", {}).get("nodes", []):
+                  field_info = field_value.get("field", {})
+                  if field_info.get("name", "").lower() == "status":
+                      board_status = field_value.get("name", "")
+                      # Contagem por coluna (para exibição nos cards de stats)
+                      cards_by_status[board_status] = cards_by_status.get(board_status, 0) + 1
+                      # Mapeamento para os módulos
+                      if card_title:
+                          card_status_by_title[card_title.lower()] = STATUS_MAP.get(board_status, "planned")
 
-          # ── Atualiza config.json ─────────────────────────────────────────────
+          board_metrics = {
+              "projectTitle":   project.get("title"),
+              "projectNumber":  project.get("number"),
+              "totalCards":     project.get("items", {}).get("totalCount", 0),
+              "cardsByStatus":  cards_by_status,
+              "lastUpdatedAt":  datetime.now(timezone.utc).isoformat(),
+          }
+
+          # ── Atualiza status dos módulos com base nos cards do board ──────────
+          # Palavras-chave para associar cards do board aos módulos do config.json
+          MODULE_KEYWORDS = {
+              "parser":                  ["parser", "tree-sitter", "tree sitter", "análise sintática", "analise sintatica"],
+              "indexer":                 ["indexer", "indexação", "indexacao", "faiss", "índice", "indice"],
+              "selector":                ["selector", "seleção", "selecao", "seletor", "ranqueamento"],
+              "optimizer":               ["optimizer", "otimizador", "pipeline", "orquestrador"],
+              "integrations/llm":        ["llm", "openai", "anthropic", "integração llm", "integracao llm"],
+              "integrations/embeddings": ["embeddings", "embedding", "vetorial", "geração de embeddings"],
+          }
+
+          def find_module_status(module_id):
+              """Busca nos cards do board o status mais recente para um módulo."""
+              keywords = MODULE_KEYWORDS.get(module_id, [])
+              for title_lower, status in card_status_by_title.items():
+                  for kw in keywords:
+                      if kw in title_lower:
+                          return status
+              return None  # Não encontrado no board → mantém o valor do config.json
+
+          # ── Lê e atualiza config.json ────────────────────────────────────────
           config_path = "docs/showcase/config.json"
           with open(config_path, "r", encoding="utf-8") as f:
               config = json.load(f)
 
+          updated_modules = []
+          for module in config.get("modules", []):
+              board_status = find_module_status(module["id"])
+              if board_status:
+                  module["status"] = board_status
+                  print(f"  Módulo '{module['id']}' → {board_status} (do board)")
+              else:
+                  print(f"  Módulo '{module['id']}' → {module['status']} (mantido do config)")
+              updated_modules.append(module)
+
+          config["modules"]      = updated_modules
           config["boardMetrics"] = board_metrics
 
           with open(config_path, "w", encoding="utf-8") as f:
               json.dump(config, f, ensure_ascii=False, indent=2)
               f.write("\n")
 
-          print(f"config.json atualizado com boardMetrics: {json.dumps(board_metrics, ensure_ascii=False)}")
+          print(f"\nboardMetrics: {json.dumps(board_metrics, ensure_ascii=False, indent=2)}")
           PYEOF
 
       - name: Commit updated config.json
@@ -151,11 +206,10 @@ jobs:
 
           git add docs/showcase/config.json
 
-          # Só commita se houver mudança real
           if git diff --cached --quiet; then
             echo "Nenhuma alteração nas métricas. Nada a commitar."
           else
-            git commit -m "chore: update board metrics [skip ci]"
+            git commit -m "chore: sync board metrics and module status [skip ci]"
             git push origin main
             echo "config.json atualizado e enviado para main."
           fi
