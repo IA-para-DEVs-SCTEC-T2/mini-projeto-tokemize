@@ -52,7 +52,7 @@
     {
       "id": "selector",
       "label": "Selector",
-      "status": "in_progress"
+      "status": "done"
     },
     {
       "id": "optimizer",
@@ -99,34 +99,34 @@
   "boardMetrics": {
     "projectTitle": "MiniProjeto",
     "projectNumber": 5,
-    "totalCards": 17,
+    "totalCards": 16,
     "cardsByStatus": {
-      "In Progress": 2,
-      "Revision": 2,
-      "Done": 4,
-      "Todo": 9
+      "In Progress": 1,
+      "Revision": 1,
+      "Done": 6,
+      "Todo": 8
     },
-    "lastUpdatedAt": "2026-05-02T19:00:21.300618+00:00"
+    "lastUpdatedAt": "2026-05-02T20:47:57.964032+00:00"
   },
   "repoStats": {
-    "totalCommits": 48,
+    "totalCommits": 52,
     "openPRs": 3,
-    "closedPRs": 19,
-    "contributors": 6,
+    "closedPRs": 20,
+    "contributors": 7,
     "activeBranches": 8,
-    "lastCommitAt": "2026-05-02T16:09:10Z",
-    "fetchedAt": "2026-05-02T19:00:21.300715+00:00"
+    "lastCommitAt": "2026-05-02T19:14:10Z",
+    "fetchedAt": "2026-05-02T20:47:57.964129+00:00"
   },
   "contributors": [
     {
       "avatar_url": "https://avatars.githubusercontent.com/u/22981568?v=4",
-      "contributions": 27,
+      "contributions": 28,
       "html_url": "https://github.com/jrcosta",
       "login": "jrcosta"
     },
     {
       "avatar_url": "https://avatars.githubusercontent.com/in/15368?v=4",
-      "contributions": 7,
+      "contributions": 8,
       "html_url": "https://github.com/apps/github-actions",
       "login": "github-actions[bot]"
     },
@@ -153,6 +153,12 @@
       "contributions": 2,
       "html_url": "https://github.com/samuelmarquesgit",
       "login": "samuelmarquesgit"
+    },
+    {
+      "avatar_url": "https://avatars.githubusercontent.com/in/1143301?v=4",
+      "contributions": 2,
+      "html_url": "https://github.com/apps/copilot-swe-agent",
+      "login": "Copilot"
     }
   ],
   "prAuthors": [
@@ -163,6 +169,14 @@
       "closed": 11,
       "avatar_url": "https://avatars.githubusercontent.com/u/22981568?v=4",
       "html_url": "https://github.com/jrcosta"
+    },
+    {
+      "login": "gvmertens",
+      "total": 3,
+      "open": 1,
+      "closed": 2,
+      "avatar_url": "https://avatars.githubusercontent.com/u/14351143?v=4",
+      "html_url": "https://github.com/gvmertens"
     },
     {
       "login": "samuelmarquesgit",
@@ -189,18 +203,10 @@
       "html_url": "https://github.com/edunotari"
     },
     {
-      "login": "gvmertens",
-      "total": 2,
-      "open": 0,
-      "closed": 2,
-      "avatar_url": "https://avatars.githubusercontent.com/u/14351143?v=4",
-      "html_url": "https://github.com/gvmertens"
-    },
-    {
       "login": "Copilot",
       "total": 1,
-      "open": 1,
-      "closed": 0,
+      "open": 0,
+      "closed": 1,
       "avatar_url": "https://avatars.githubusercontent.com/in/1143301?v=4",
       "html_url": "https://github.com/apps/copilot-swe-agent"
     }
