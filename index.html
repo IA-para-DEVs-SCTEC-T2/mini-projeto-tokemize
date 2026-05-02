@@ -15,7 +15,8 @@
         <a href="#hero" class="nav-logo">Tokemize</a>
         <ul class="nav-links" role="list">
           <li><a href="#stats">Estatísticas</a></li>
-          <li><a href="#contribution-graph">Contribuições</a></li>
+          <li><a href="#contribution-graph">Commits</a></li>
+          <li><a href="#pr-graph">Pull Requests</a></li>
           <li><a href="#progress">Progresso</a></li>
           <li><a href="#pipeline">Pipeline</a></li>
           <li><a href="#tech-stack">Tecnologias</a></li>
@@ -55,12 +56,20 @@
       <!-- ===== CONTRIBUTION GRAPH ===== -->
       <section id="contribution-graph" aria-labelledby="graph-title">
         <div class="section-inner">
-          <h2 id="graph-title" class="section-title">Contribuidores</h2>
+          <h2 id="graph-title" class="section-title">Commits por Contribuidor</h2>
           <div id="contribution-graph-container" class="graph-container">
-            <!-- Preenchido por renderContributionGraph() -->
             <p class="loading-placeholder" aria-label="Carregando contribuidores">Carregando…</p>
           </div>
-          <div id="graph-tooltip" role="tooltip" aria-hidden="true" class="graph-tooltip"></div>
+        </div>
+      </section>
+
+      <!-- ===== PR GRAPH ===== -->
+      <section id="pr-graph" aria-labelledby="pr-graph-title">
+        <div class="section-inner">
+          <h2 id="pr-graph-title" class="section-title">Pull Requests por Contribuidor</h2>
+          <div id="pr-graph-container" class="graph-container">
+            <p class="loading-placeholder" aria-label="Carregando pull requests">Carregando…</p>
+          </div>
         </div>
       </section>
 

@@ -21,11 +21,11 @@
 
 import { loadConfig }          from './configLoader.js';
 import { CacheStore, DEFAULT_TTL } from './cacheStore.js';
-import { fetchRepoData, fetchAvatarUrl } from './apiClient.js';
+import { fetchRepoData, fetchPRsByAuthor, fetchAvatarUrl } from './apiClient.js';
 
 import { renderHero }              from './components/hero.js';
 import { renderStats }             from './components/stats.js';
-import { renderContributionGraph } from './components/contributionGraph.js';
+import { renderContributionGraph, renderPRGraph } from './components/contributionGraph.js';
 import { renderProgressTracker }   from './components/progressTracker.js';
 import { renderTechStack }         from './components/techStack.js';
 import { renderTeam }              from './components/team.js';
@@ -33,6 +33,7 @@ import { renderTeam }              from './components/team.js';
 // Chaves de cache
 const CACHE_KEY_STATS    = 'repo_stats';
 const CACHE_KEY_ACTIVITY = 'commit_activity';
+const CACHE_KEY_PRS      = 'pr_authors';
 
 const cache = new CacheStore();
 
@@ -67,11 +68,26 @@ async function loadAndRenderRepoData(owner, repo, timeout, boardMetrics = null) 
     renderContributionGraph(contributors);
   } catch (err) {
     // Fallback para cache stale se disponível
-    const cachedStats       = cache.get(CACHE_KEY_STATS);
+    const cachedStats        = cache.get(CACHE_KEY_STATS);
     const cachedContributors = cache.get(CACHE_KEY_ACTIVITY);
 
     renderStats(cachedStats ?? null, cachedStats !== null, boardMetrics);
     if (cachedContributors) renderContributionGraph(cachedContributors);
+  }
+
+  // PRs por autor — chamada separada para não bloquear as stats
+  try {
+    const prStale = cache.isStale(CACHE_KEY_PRS, DEFAULT_TTL);
+    if (!prStale) {
+      renderPRGraph(cache.get(CACHE_KEY_PRS));
+    } else {
+      const prAuthors = await fetchPRsByAuthor(owner, repo, timeout);
+      cache.set(CACHE_KEY_PRS, prAuthors);
+      renderPRGraph(prAuthors);
+    }
+  } catch (err) {
+    const cachedPRs = cache.get(CACHE_KEY_PRS);
+    if (cachedPRs) renderPRGraph(cachedPRs);
   }
 }
 

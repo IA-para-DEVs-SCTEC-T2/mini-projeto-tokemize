@@ -186,6 +186,63 @@ export async function fetchRepoStats(owner, repo, timeout = 8000) {
 }
 
 // ---------------------------------------------------------------------------
+// fetchPRsByAuthor
+// ---------------------------------------------------------------------------
+
+/**
+ * @typedef {Object} PRAuthor
+ * @property {string} login
+ * @property {number} total      - total de PRs (abertos + fechados)
+ * @property {number} open
+ * @property {number} closed
+ * @property {string} avatar_url
+ * @property {string} html_url
+ */
+
+/**
+ * Busca todos os PRs (abertos + fechados) e agrupa por autor.
+ * Usa per_page=100 para minimizar chamadas.
+ *
+ * @param {string} owner
+ * @param {string} repo
+ * @param {number} [timeout=8000]
+ * @returns {Promise<PRAuthor[]>}
+ */
+export async function fetchPRsByAuthor(owner, repo, timeout = 8000) {
+  const url = buildUrl(`/repos/${owner}/${repo}/pulls`, {
+    state: 'all',
+    per_page: 100,
+  });
+
+  const response = await fetchWithTimeout(url, timeout);
+  const data = await response.json();
+
+  if (!Array.isArray(data)) return [];
+
+  /** @type {Map<string, PRAuthor>} */
+  const authorMap = new Map();
+
+  for (const pr of data) {
+    const login      = pr?.user?.login ?? 'unknown';
+    const avatarUrl  = pr?.user?.avatar_url ?? '';
+    const htmlUrl    = pr?.user?.html_url ?? `https://github.com/${login}`;
+    const isOpen     = pr?.state === 'open';
+
+    if (!authorMap.has(login)) {
+      authorMap.set(login, { login, total: 0, open: 0, closed: 0, avatar_url: avatarUrl, html_url: htmlUrl });
+    }
+
+    const entry = authorMap.get(login);
+    entry.total  += 1;
+    if (isOpen) entry.open   += 1;
+    else        entry.closed += 1;
+  }
+
+  // Ordena por total decrescente
+  return [...authorMap.values()].sort((a, b) => b.total - a.total);
+}
+
+// ---------------------------------------------------------------------------
 // fetchCommitActivity (mantido para compatibilidade com testes)
 // ---------------------------------------------------------------------------
 
