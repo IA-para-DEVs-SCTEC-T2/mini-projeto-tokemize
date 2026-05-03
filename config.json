@@ -101,21 +101,20 @@
     "projectNumber": 5,
     "totalCards": 16,
     "cardsByStatus": {
-      "In Progress": 1,
-      "Revision": 1,
+      "Revision": 2,
       "Done": 9,
       "Todo": 5
     },
-    "lastUpdatedAt": "2026-05-02T23:36:42.190287+00:00"
+    "lastUpdatedAt": "2026-05-03T02:56:32.403211+00:00"
   },
   "repoStats": {
-    "totalCommits": 73,
-    "openPRs": 0,
+    "totalCommits": 74,
+    "openPRs": 2,
     "closedPRs": 26,
     "contributors": 7,
-    "activeBranches": 11,
-    "lastCommitAt": "2026-05-02T21:59:11Z",
-    "fetchedAt": "2026-05-02T23:36:42.190379+00:00"
+    "activeBranches": 12,
+    "lastCommitAt": "2026-05-02T23:36:42Z",
+    "fetchedAt": "2026-05-03T02:56:32.403313+00:00"
   },
   "contributors": [
     {
@@ -132,7 +131,7 @@
     },
     {
       "avatar_url": "https://avatars.githubusercontent.com/in/15368?v=4",
-      "contributions": 10,
+      "contributions": 11,
       "html_url": "https://github.com/apps/github-actions",
       "login": "github-actions[bot]"
     },
@@ -164,8 +163,8 @@
   "prAuthors": [
     {
       "login": "jrcosta",
-      "total": 14,
-      "open": 1,
+      "total": 15,
+      "open": 2,
       "closed": 13,
       "avatar_url": "https://avatars.githubusercontent.com/u/22981568?v=4",
       "html_url": "https://github.com/jrcosta"
