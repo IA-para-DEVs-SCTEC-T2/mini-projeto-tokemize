@@ -1,4 +1,10 @@
-"""Módulo responsável por resumir arquivos relevantes usando LLM."""
+"""Módulo responsável por resumir arquivos relevantes usando LLM.
+
+Expõe duas interfaces:
+- ``summarize_selected(selection_output)`` — função de pipeline compatível
+  com o orquestrador (retorna ``SummaryOutput``)
+- ``Summarizer`` — classe avançada com cache e integração LLM
+"""
 
 from __future__ import annotations
 
@@ -8,6 +14,7 @@ from pathlib import Path
 
 from tokemize.cache import FileCache
 from tokemize.integrations.llm.protocol import LLMClientProtocol
+from tokemize.models import SelectionOutput, SummaryOutput
 
 logger = logging.getLogger(__name__)
 
@@ -139,3 +146,46 @@ class Summarizer:
             Hash SHA-256 em formato hexadecimal.
         """
         return hashlib.sha256(content.encode("utf-8")).hexdigest()
+
+
+# ── Função de pipeline ────────────────────────────────────────────────────────
+
+
+def summarize_selected(selection_output: SelectionOutput) -> SummaryOutput:
+    """Resume o conteúdo dos arquivos selecionados em um bloco compacto.
+
+    Função de pipeline compatível com o orquestrador. Não usa LLM — concatena
+    os caminhos dos arquivos selecionados como conteúdo resumido (stub).
+
+    Args:
+        selection_output: Resultado da etapa de seleção contendo os
+            arquivos relevantes com seus scores de relevância.
+
+    Returns:
+        SummaryOutput com ``summarized_content`` não-vazio quando há
+        arquivos selecionados. Se ``selection_output.selected_files``
+        estiver vazio, retorna ``SummaryOutput(summarized_content="",
+        token_count=0, files_summarized=0)``.
+
+    Example:
+        >>> from tokemize.models import SelectionOutput
+        >>> output = summarize_selected(SelectionOutput())
+        >>> output.summarized_content
+        ''
+    """
+    if not selection_output.selected_files:
+        return SummaryOutput(
+            summarized_content="",
+            token_count=0,
+            files_summarized=0,
+        )
+
+    summarized_content = "\n".join(f.path for f in selection_output.selected_files)
+    token_count = len(summarized_content.split())
+    files_summarized = len(selection_output.selected_files)
+
+    return SummaryOutput(
+        summarized_content=summarized_content,
+        token_count=token_count,
+        files_summarized=files_summarized,
+    )
