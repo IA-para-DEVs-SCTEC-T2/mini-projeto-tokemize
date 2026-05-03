@@ -57,12 +57,12 @@
     {
       "id": "optimizer",
       "label": "Optimizer",
-      "status": "planned"
+      "status": "done"
     },
     {
       "id": "integrations/llm",
       "label": "LLM Integration",
-      "status": "planned"
+      "status": "in_progress"
     },
     {
       "id": "integrations/embeddings",
@@ -101,57 +101,57 @@
     "projectNumber": 5,
     "totalCards": 16,
     "cardsByStatus": {
-      "Revision": 1,
-      "Done": 7,
-      "Todo": 8
+      "Revision": 2,
+      "Done": 9,
+      "Todo": 5
     },
-    "lastUpdatedAt": "2026-05-02T21:13:05.052596+00:00"
+    "lastUpdatedAt": "2026-05-03T19:00:25.008225+00:00"
   },
   "repoStats": {
-    "totalCommits": 53,
+    "totalCommits": 77,
     "openPRs": 2,
-    "closedPRs": 22,
+    "closedPRs": 26,
     "contributors": 7,
-    "activeBranches": 9,
-    "lastCommitAt": "2026-05-02T20:47:57Z",
-    "fetchedAt": "2026-05-02T21:13:05.052698+00:00"
+    "activeBranches": 12,
+    "lastCommitAt": "2026-05-03T13:11:42Z",
+    "fetchedAt": "2026-05-03T19:00:25.008314+00:00"
   },
   "contributors": [
     {
       "avatar_url": "https://avatars.githubusercontent.com/u/22981568?v=4",
-      "contributions": 28,
+      "contributions": 32,
       "html_url": "https://github.com/jrcosta",
       "login": "jrcosta"
     },
     {
       "avatar_url": "https://avatars.githubusercontent.com/in/15368?v=4",
-      "contributions": 9,
+      "contributions": 14,
       "html_url": "https://github.com/apps/github-actions",
       "login": "github-actions[bot]"
     },
     {
+      "avatar_url": "https://avatars.githubusercontent.com/u/237599657?v=4",
+      "contributions": 11,
+      "html_url": "https://github.com/samuelmarquesgit",
+      "login": "samuelmarquesgit"
+    },
+    {
       "avatar_url": "https://avatars.githubusercontent.com/u/14351143?v=4",
-      "contributions": 5,
+      "contributions": 9,
       "html_url": "https://github.com/gvmertens",
       "login": "gvmertens"
+    },
+    {
+      "avatar_url": "https://avatars.githubusercontent.com/u/85140484?v=4",
+      "contributions": 5,
+      "html_url": "https://github.com/PauloSergioLR",
+      "login": "PauloSergioLR"
     },
     {
       "avatar_url": "https://avatars.githubusercontent.com/u/65471872?v=4",
       "contributions": 4,
       "html_url": "https://github.com/edunotari",
       "login": "edunotari"
-    },
-    {
-      "avatar_url": "https://avatars.githubusercontent.com/u/85140484?v=4",
-      "contributions": 3,
-      "html_url": "https://github.com/PauloSergioLR",
-      "login": "PauloSergioLR"
-    },
-    {
-      "avatar_url": "https://avatars.githubusercontent.com/u/237599657?v=4",
-      "contributions": 2,
-      "html_url": "https://github.com/samuelmarquesgit",
-      "login": "samuelmarquesgit"
     },
     {
       "avatar_url": "https://avatars.githubusercontent.com/in/1143301?v=4",
@@ -163,25 +163,25 @@
   "prAuthors": [
     {
       "login": "jrcosta",
-      "total": 13,
-      "open": 1,
-      "closed": 12,
+      "total": 15,
+      "open": 2,
+      "closed": 13,
       "avatar_url": "https://avatars.githubusercontent.com/u/22981568?v=4",
       "html_url": "https://github.com/jrcosta"
     },
     {
       "login": "gvmertens",
-      "total": 3,
+      "total": 4,
       "open": 0,
-      "closed": 3,
+      "closed": 4,
       "avatar_url": "https://avatars.githubusercontent.com/u/14351143?v=4",
       "html_url": "https://github.com/gvmertens"
     },
     {
       "login": "samuelmarquesgit",
-      "total": 3,
-      "open": 1,
-      "closed": 2,
+      "total": 4,
+      "open": 0,
+      "closed": 4,
       "avatar_url": "https://avatars.githubusercontent.com/u/237599657?v=4",
       "html_url": "https://github.com/samuelmarquesgit"
     },
