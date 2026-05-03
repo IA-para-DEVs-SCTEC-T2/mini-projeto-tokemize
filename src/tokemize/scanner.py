@@ -1,12 +1,15 @@
-"""Ponto de entrada público do scanner do Tokemize.
+"""Scanner do repositório para o pipeline Tokemize.
 
-Re-exporta RepositoryScanner, FileMetadata e ScanResult do módulo interno
-para satisfazer o entregável src/tokemize/scanner.py e manter a estrutura
-de pacotes em core/parser/.
-
-Uso:
-    from tokemize.scanner import RepositoryScanner, FileMetadata, ScanResult
+Expõe duas interfaces:
+- ``scan_repository(repo_path)`` — função de pipeline que retorna ``ScanOutput``
+  (compatível com o orquestrador e test_stubs.py)
+- ``RepositoryScanner``, ``FileMetadata``, ``ScanResult`` — re-exports do
+  scanner avançado em ``core/parser/scanner.py``
 """
+
+from __future__ import annotations
+
+import os
 
 from tokemize.core.parser.scanner import (  # noqa: F401
     DEFAULT_IGNORE_DIRS,
@@ -16,8 +19,10 @@ from tokemize.core.parser.scanner import (  # noqa: F401
     RepositoryScanner,
     ScanResult,
 )
+from tokemize.models import ScannedFile, ScanOutput
 
 __all__ = [
+    "scan_repository",
     "RepositoryScanner",
     "FileMetadata",
     "ScanResult",
@@ -25,3 +30,52 @@ __all__ = [
     "SUPPORTED_EXTENSIONS",
     "EXTENSION_TO_LANGUAGE",
 ]
+
+
+def scan_repository(repo_path: str) -> ScanOutput:
+    """Varre o repositório e retorna metadados dos arquivos encontrados.
+
+    Função de pipeline compatível com o orquestrador. Usa o
+    ``RepositoryScanner`` internamente e converte o resultado para
+    ``ScanOutput`` / ``ScannedFile``.
+
+    Args:
+        repo_path: Caminho absoluto ou relativo para a raiz do repositório.
+
+    Returns:
+        ScanOutput com a lista de arquivos encontrados e contadores de
+        totais. Se o diretório estiver vazio, retorna ``ScanOutput`` com
+        ``files=[]``, ``total_files=0`` e ``skipped_files=0``.
+
+    Raises:
+        NotADirectoryError: Se ``repo_path`` não for um diretório válido.
+
+    Example:
+        >>> output = scan_repository(".")
+        >>> output.total_files == len(output.files)
+        True
+    """
+    from pathlib import Path
+
+    scanner = RepositoryScanner()
+    result = scanner.scan(Path(repo_path))
+
+    files: list[ScannedFile] = []
+    for fm in result.files:
+        files.append(
+            ScannedFile(
+                path=str(fm.relative_path),
+                absolute_path=str(fm.path),
+                language=fm.language,
+                extension=fm.extension,
+                size_bytes=fm.size_bytes,
+                line_count=fm.line_count,
+            )
+        )
+
+    return ScanOutput(
+        repo_path=repo_path,
+        files=files,
+        total_files=result.total_files,
+        skipped_files=result.skipped_files,
+    )

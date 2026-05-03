@@ -75,8 +75,18 @@ def test_run_pipeline_fails_at_each_stage(
 
     Validates: Requirements 3.1, 3.2, 3.3, 3.4, 3.5, 3.6
     """
-    # Mock da etapa que deve falhar para lançar exceção.
-    with patch(f"tokemize.orchestrator.{stage_to_fail}") as mock_stage:
+    # Mapeamento de nome de etapa → nome da função importada no orquestrador
+    stage_fn_map = {
+        "scanner": "scan_repository",
+        "analyzer": "analyze_files",
+        "embeddings": "generate_embeddings",
+        "selector": "select_relevant",
+        "summarizer": "summarize_selected",
+        "generator": "generate_prompt",
+        "reporter": "format_result",
+    }
+    fn_name = stage_fn_map[stage_to_fail]
+    with patch(f"tokemize.orchestrator.{fn_name}") as mock_stage:
         mock_stage.side_effect = RuntimeError(f"Simulated failure in {stage_to_fail}")
 
         result = run_pipeline(".", "any task")
@@ -165,7 +175,7 @@ def test_property_1_run_pipeline_never_raises(repo_path: str, task: str):
 
 
 @pytest.mark.optional
-@given(repo_path=st.just("."), task=tasks)
+@given(task=tasks)
 def test_property_2_success_implies_no_failure_fields(task: str):
     """Property 2: Invariante de sucesso — campos nulos em caso de sucesso.
 
@@ -268,9 +278,20 @@ def test_property_6_failure_preserves_previous_stages(fail_at_index: int):
         "generator",
         "reporter",
     ]
+    # Mapeamento de nome de etapa → nome da função importada no orquestrador
+    stage_fn_map = {
+        "scanner": "scan_repository",
+        "analyzer": "analyze_files",
+        "embeddings": "generate_embeddings",
+        "selector": "select_relevant",
+        "summarizer": "summarize_selected",
+        "generator": "generate_prompt",
+        "reporter": "format_result",
+    }
     stage_to_fail = stage_names[fail_at_index]
+    fn_name = stage_fn_map[stage_to_fail]
 
-    with patch(f"tokemize.orchestrator.{stage_to_fail}") as mock_stage:
+    with patch(f"tokemize.orchestrator.{fn_name}") as mock_stage:
         mock_stage.side_effect = RuntimeError(f"Fail at {stage_to_fail}")
 
         result = run_pipeline(".", "task")

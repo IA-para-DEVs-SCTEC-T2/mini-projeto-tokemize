@@ -1,42 +1,124 @@
-"""Seletor inteligente de contexto para LLMs."""
+"""Seletor de contexto para o pipeline Tokemize.
+
+Expõe duas interfaces:
+- ``select_relevant(embeddings_output, task)`` — função de pipeline que
+  retorna ``SelectionOutput`` (compatível com o orquestrador e test_stubs.py)
+- ``ContextSelector`` — classe avançada com suporte a FAISS e embeddings
+"""
+
+from __future__ import annotations
 
 import logging
 
+from tokemize.models import EmbeddingsOutput, SelectedFile, SelectionOutput
+
 logger = logging.getLogger(__name__)
+
+# Score de relevância fictício atribuído a todos os arquivos pelo stub.
+_STUB_RELEVANCE_SCORE: float = 0.8
+
+
+def select_relevant(
+    embeddings_output: EmbeddingsOutput,
+    task: str,
+) -> SelectionOutput:
+    """Seleciona os arquivos mais relevantes para a tarefa informada.
+
+    Args:
+        embeddings_output: Resultado da etapa de embeddings contendo os
+            arquivos com seus vetores de representação.
+        task: Descrição textual da tarefa técnica fornecida pelo usuário.
+
+    Returns:
+        SelectionOutput com os arquivos selecionados ordenados por
+        ``relevance_score`` decrescente e ``task`` preservada no output.
+        Se ``embeddings_output.embedded_files`` estiver vazio, retorna
+        ``SelectionOutput(task=task, selected_files=[], total_candidates=0)``.
+
+    Example:
+        >>> from tokemize.models import EmbeddingsOutput
+        >>> output = select_relevant(EmbeddingsOutput(), task="refactor auth")
+        >>> output.task
+        'refactor auth'
+    """
+    total_candidates = len(embeddings_output.embedded_files)
+
+    if not embeddings_output.embedded_files:
+        return SelectionOutput(
+            task=task,
+            selected_files=[],
+            total_candidates=0,
+        )
+
+    selected: list[SelectedFile] = []
+    for embedded in embeddings_output.embedded_files:
+        selected.append(
+            SelectedFile(
+                path=embedded.path,
+                language=embedded.language,
+                content=embedded.content,
+                relevance_score=_STUB_RELEVANCE_SCORE,
+            )
+        )
+
+    selected.sort(key=lambda f: f.relevance_score, reverse=True)
+
+    return SelectionOutput(
+        task=task,
+        selected_files=selected,
+        total_candidates=total_candidates,
+    )
 
 
 class ContextSelector:
-    """Seleciona e ranqueia arquivos relevantes respeitando o budget de tokens."""
+    """Seleciona e ranqueia arquivos relevantes respeitando o budget de tokens.
 
-    def __init__(self, indexer, embeddings_client, relevance_threshold=0.75, top_k=20):
-        """Inicializa o ContextSelector."""
+    Implementação avançada com suporte a FAISS e embeddings semânticos.
+
+    Args:
+        indexer: Instância do indexador FAISS.
+        embeddings_client: Cliente de embeddings para gerar vetores.
+        relevance_threshold: Score mínimo de relevância (padrão: 0.75).
+        top_k: Número máximo de candidatos a recuperar do índice (padrão: 20).
+    """
+
+    def __init__(
+        self,
+        indexer: object,
+        embeddings_client: object,
+        relevance_threshold: float = 0.75,
+        top_k: int = 20,
+    ) -> None:
         if not 0.0 <= relevance_threshold <= 1.0:
             raise ValueError(
                 f"relevance_threshold deve estar em [0.0, 1.0], recebido {relevance_threshold}"
             )
-
         self.indexer = indexer
         self.embeddings_client = embeddings_client
         self.relevance_threshold = relevance_threshold
         self.top_k = top_k
-
         logger.debug(
-            f"ContextSelector inicializado: threshold={relevance_threshold}, top_k={top_k}"
+            "ContextSelector inicializado: threshold=%s, top_k=%s",
+            relevance_threshold,
+            top_k,
         )
 
-    def select(self, request, token_budget):
-        """Seleciona os arquivos mais relevantes dentro do budget de tokens."""
-        logger.info(f"Iniciando seleção de contexto: budget={token_budget} tokens")
+    def select(self, request: str, token_budget: int) -> dict:
+        """Seleciona os arquivos mais relevantes dentro do budget de tokens.
 
-        # 1. Gera embedding da requisição
+        Args:
+            request: Descrição da tarefa / query do usuário.
+            token_budget: Número máximo de tokens permitidos no contexto.
+
+        Returns:
+            Dicionário com ``files_complete``, ``files_summary``,
+            ``files_ignored``, ``total_tokens`` e ``formatted_text``.
+        """
+        logger.info("Iniciando seleção de contexto: budget=%d tokens", token_budget)
+
         query_vector = self.embeddings_client.embed_text(request)
-        logger.debug(f"Embedding da query gerado: dim={len(query_vector)}")
-
-        # 2. Busca candidatos no FAISS
         candidates = self.indexer.search(query_vector, top_k=self.top_k)
-        logger.debug(f"Recuperados {len(candidates)} candidatos do FAISS")
 
-        # 3. Filtra por relevance_threshold
         filtered = [
             (item, score)
             for item, score in candidates
@@ -45,7 +127,8 @@ class ContextSelector:
 
         if not filtered:
             logger.warning(
-                f"Nenhum arquivo acima do limiar de relevância {self.relevance_threshold}"
+                "Nenhum arquivo acima do limiar de relevância %s",
+                self.relevance_threshold,
             )
             return {
                 "files_complete": [],
@@ -55,24 +138,16 @@ class ContextSelector:
                 "formatted_text": "",
             }
 
-        logger.debug(
-            f"Filtrados {len(filtered)} arquivos acima do limiar {self.relevance_threshold}"
-        )
-
-        # 4. Ordena por score decrescente, desempata por menor token_count
         ranked = self._rank_items(filtered)
-
-        # 5. Acumula arquivos até atingir token_budget
         selected, ignored = self._accumulate_within_budget(ranked, token_budget)
-
-        # 6. Formata contexto final
         total_tokens = sum(item.get("token_count", 0) for item in selected)
         formatted_text = self._format_context(selected)
 
         logger.info(
-            f"Seleção de contexto completa: {len(selected)} arquivos, {total_tokens} tokens"
+            "Seleção concluída: %d arquivos, %d tokens",
+            len(selected),
+            total_tokens,
         )
-
         return {
             "files_complete": selected,
             "files_summary": [],
@@ -81,61 +156,30 @@ class ContextSelector:
             "formatted_text": formatted_text,
         }
 
-    def _rank_items(self, candidates):
-        """Ranqueia arquivos por score de relevância e token_count."""
-        ranked = sorted(
-            candidates,
-            key=lambda x: (-x[1], x[0].get("token_count", 0)),
-        )
+    def _rank_items(self, candidates: list) -> list:
+        return sorted(candidates, key=lambda x: (-x[1], x[0].get("token_count", 0)))
 
-        logger.debug(f"Ranqueados {len(ranked)} arquivos por relevância e tamanho")
-        return ranked
-
-    def _accumulate_within_budget(self, ranked_items, token_budget):
-        """Acumula arquivos em ordem de relevância até o budget ser atingido."""
-        selected = []
-        ignored = []
-        accumulated_tokens = 0
-
+    def _accumulate_within_budget(
+        self, ranked_items: list, token_budget: int
+    ) -> tuple[list, list]:
+        selected, ignored = [], []
+        accumulated = 0
         for item, score in ranked_items:
-            item_tokens = item.get("token_count", 0)
-            item_name = item.get("name", "unknown")
-
-            if accumulated_tokens + item_tokens <= token_budget:
+            tokens = item.get("token_count", 0)
+            if accumulated + tokens <= token_budget:
                 selected.append(item)
-                accumulated_tokens += item_tokens
-                logger.debug(
-                    f"Selecionado '{item_name}': "
-                    f"{item_tokens} tokens (score={score:.3f})"
-                )
+                accumulated += tokens
             else:
                 ignored.append(item)
-                logger.debug(
-                    f"Ignorado '{item_name}': "
-                    f"excederia budget ({accumulated_tokens + item_tokens} > {token_budget})"
-                )
-
-        if ignored:
-            logger.debug(
-                f"Ignorados {len(ignored)} arquivos devido ao limite de tokens"
-            )
-
         return selected, ignored
 
-    def _format_context(self, items):
-        """Formata os arquivos selecionados em um bloco de texto estruturado."""
+    def _format_context(self, items: list) -> str:
         if not items:
             return ""
-
-        formatted_parts = []
-
+        parts = []
         for item in items:
             name = item.get("name", "unknown")
             language = item.get("language", "text")
             content = item.get("content", "")
-
-            header = f"### [{language}] — {name}"
-            code_block = f"```{language}\n{content}\n```"
-            formatted_parts.append(f"{header}\n{code_block}")
-
-        return "\n\n".join(formatted_parts)
+            parts.append(f"### [{language}] — {name}\n```{language}\n{content}\n```")
+        return "\n\n".join(parts)

@@ -16,6 +16,8 @@ from pathlib import Path
 # ---------------------------------------------------------------------------
 
 ROOT = Path(__file__).parent.parent
+# Pacote canônico em src/tokemize/ (pythonpath = ["src"])
+PKG = ROOT / "src" / "tokemize"
 
 
 def test_cli_py_exists():
@@ -23,48 +25,48 @@ def test_cli_py_exists():
 
 
 def test_tokemize_package_exists():
-    assert (ROOT / "tokemize").is_dir()
-    assert (ROOT / "tokemize" / "__init__.py").is_file()
+    assert PKG.is_dir()
+    assert (PKG / "__init__.py").is_file()
 
 
 def test_core_package_exists():
-    assert (ROOT / "tokemize" / "core").is_dir()
-    assert (ROOT / "tokemize" / "core" / "__init__.py").is_file()
+    assert (PKG / "core").is_dir()
+    assert (PKG / "core" / "__init__.py").is_file()
 
 
 def test_parser_package_exists():
-    assert (ROOT / "tokemize" / "core" / "parser").is_dir()
-    assert (ROOT / "tokemize" / "core" / "parser" / "__init__.py").is_file()
+    assert (PKG / "core" / "parser").is_dir()
+    assert (PKG / "core" / "parser" / "__init__.py").is_file()
 
 
 def test_selector_package_exists():
-    assert (ROOT / "tokemize" / "core" / "selector").is_dir()
-    assert (ROOT / "tokemize" / "core" / "selector" / "__init__.py").is_file()
+    assert (PKG / "core" / "selector").is_dir()
+    assert (PKG / "core" / "selector" / "__init__.py").is_file()
 
 
 def test_optimizer_package_exists():
-    assert (ROOT / "tokemize" / "core" / "optimizer").is_dir()
-    assert (ROOT / "tokemize" / "core" / "optimizer" / "__init__.py").is_file()
+    assert (PKG / "core" / "optimizer").is_dir()
+    assert (PKG / "core" / "optimizer" / "__init__.py").is_file()
 
 
 def test_integrations_llm_package_exists():
-    assert (ROOT / "tokemize" / "integrations").is_dir()
-    assert (ROOT / "tokemize" / "integrations" / "__init__.py").is_file()
-    assert (ROOT / "tokemize" / "integrations" / "llm").is_dir()
-    assert (ROOT / "tokemize" / "integrations" / "llm" / "__init__.py").is_file()
+    assert (PKG / "integrations").is_dir()
+    assert (PKG / "integrations" / "__init__.py").is_file()
+    assert (PKG / "integrations" / "llm").is_dir()
+    assert (PKG / "integrations" / "llm" / "__init__.py").is_file()
 
 
 def test_models_package_exists():
-    assert (ROOT / "tokemize" / "models").is_dir()
-    assert (ROOT / "tokemize" / "models" / "__init__.py").is_file()
+    assert (PKG / "models").is_dir()
+    assert (PKG / "models" / "__init__.py").is_file()
 
 
 def test_stub_module_files_exist():
-    assert (ROOT / "tokemize" / "core" / "parser" / "repository_analyzer.py").is_file()
-    assert (ROOT / "tokemize" / "core" / "selector" / "intelligent_selector.py").is_file()
-    assert (ROOT / "tokemize" / "core" / "optimizer" / "compressor.py").is_file()
-    assert (ROOT / "tokemize" / "core" / "context_cache.py").is_file()
-    assert (ROOT / "tokemize" / "integrations" / "llm" / "llm_dispatcher.py").is_file()
+    assert (PKG / "core" / "parser" / "repository_analyzer.py").is_file()
+    assert (PKG / "core" / "selector" / "intelligent_selector.py").is_file()
+    assert (PKG / "core" / "optimizer" / "compressor.py").is_file()
+    assert (PKG / "core" / "context_cache.py").is_file()
+    assert (PKG / "integrations" / "llm" / "llm_dispatcher.py").is_file()
 
 
 # ---------------------------------------------------------------------------
