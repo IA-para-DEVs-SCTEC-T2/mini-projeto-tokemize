@@ -47,7 +47,7 @@
     {
       "id": "indexer",
       "label": "Indexer",
-      "status": "planned"
+      "status": "done"
     },
     {
       "id": "selector",
@@ -62,12 +62,12 @@
     {
       "id": "integrations/llm",
       "label": "LLM Integration",
-      "status": "in_progress"
+      "status": "done"
     },
     {
       "id": "integrations/embeddings",
       "label": "Embeddings",
-      "status": "planned"
+      "status": "done"
     }
   ],
   "team": [
@@ -97,59 +97,59 @@
     "readme": "https://github.com/IA-para-DEVs-SCTEC-T2/mini-projeto-tokemize#readme"
   },
   "boardMetrics": {
-    "projectTitle": "MiniProjeto",
+    "projectTitle": "Mini Projeto Tokemize - Time 4",
     "projectNumber": 5,
-    "totalCards": 16,
+    "totalCards": 22,
     "cardsByStatus": {
-      "Revision": 2,
-      "Done": 9,
-      "Todo": 5
+      "Done": 14,
+      "In Progress": 1,
+      "Todo": 7
     },
-    "lastUpdatedAt": "2026-05-03T19:00:25.008225+00:00"
+    "lastUpdatedAt": "2026-05-04T21:38:27.351234+00:00"
   },
   "repoStats": {
-    "totalCommits": 77,
-    "openPRs": 2,
-    "closedPRs": 26,
+    "totalCommits": 105,
+    "openPRs": 0,
+    "closedPRs": 38,
     "contributors": 7,
-    "activeBranches": 12,
-    "lastCommitAt": "2026-05-03T13:11:42Z",
-    "fetchedAt": "2026-05-03T19:00:25.008314+00:00"
+    "activeBranches": 15,
+    "lastCommitAt": "2026-05-04T21:37:33Z",
+    "fetchedAt": "2026-05-04T21:38:27.351339+00:00"
   },
   "contributors": [
     {
       "avatar_url": "https://avatars.githubusercontent.com/u/22981568?v=4",
-      "contributions": 32,
+      "contributions": 42,
       "html_url": "https://github.com/jrcosta",
       "login": "jrcosta"
     },
     {
       "avatar_url": "https://avatars.githubusercontent.com/in/15368?v=4",
-      "contributions": 14,
+      "contributions": 18,
       "html_url": "https://github.com/apps/github-actions",
       "login": "github-actions[bot]"
     },
     {
       "avatar_url": "https://avatars.githubusercontent.com/u/237599657?v=4",
-      "contributions": 11,
+      "contributions": 14,
       "html_url": "https://github.com/samuelmarquesgit",
       "login": "samuelmarquesgit"
     },
     {
       "avatar_url": "https://avatars.githubusercontent.com/u/14351143?v=4",
-      "contributions": 9,
+      "contributions": 11,
       "html_url": "https://github.com/gvmertens",
       "login": "gvmertens"
     },
     {
       "avatar_url": "https://avatars.githubusercontent.com/u/85140484?v=4",
-      "contributions": 5,
+      "contributions": 7,
       "html_url": "https://github.com/PauloSergioLR",
       "login": "PauloSergioLR"
     },
     {
       "avatar_url": "https://avatars.githubusercontent.com/u/65471872?v=4",
-      "contributions": 4,
+      "contributions": 5,
       "html_url": "https://github.com/edunotari",
       "login": "edunotari"
     },
@@ -163,11 +163,27 @@
   "prAuthors": [
     {
       "login": "jrcosta",
-      "total": 15,
-      "open": 2,
-      "closed": 13,
+      "total": 22,
+      "open": 0,
+      "closed": 22,
       "avatar_url": "https://avatars.githubusercontent.com/u/22981568?v=4",
       "html_url": "https://github.com/jrcosta"
+    },
+    {
+      "login": "samuelmarquesgit",
+      "total": 6,
+      "open": 0,
+      "closed": 6,
+      "avatar_url": "https://avatars.githubusercontent.com/u/237599657?v=4",
+      "html_url": "https://github.com/samuelmarquesgit"
+    },
+    {
+      "login": "edunotari",
+      "total": 4,
+      "open": 1,
+      "closed": 3,
+      "avatar_url": "https://avatars.githubusercontent.com/u/65471872?v=4",
+      "html_url": "https://github.com/edunotari"
     },
     {
       "login": "gvmertens",
@@ -178,28 +194,12 @@
       "html_url": "https://github.com/gvmertens"
     },
     {
-      "login": "samuelmarquesgit",
-      "total": 4,
-      "open": 0,
-      "closed": 4,
-      "avatar_url": "https://avatars.githubusercontent.com/u/237599657?v=4",
-      "html_url": "https://github.com/samuelmarquesgit"
-    },
-    {
       "login": "PauloSergioLR",
       "total": 2,
       "open": 0,
       "closed": 2,
       "avatar_url": "https://avatars.githubusercontent.com/u/85140484?v=4",
       "html_url": "https://github.com/PauloSergioLR"
-    },
-    {
-      "login": "edunotari",
-      "total": 2,
-      "open": 0,
-      "closed": 2,
-      "avatar_url": "https://avatars.githubusercontent.com/u/65471872?v=4",
-      "html_url": "https://github.com/edunotari"
     },
     {
       "login": "Copilot",
