@@ -125,12 +125,6 @@
       "login": "jrcosta"
     },
     {
-      "avatar_url": "https://avatars.githubusercontent.com/in/15368?v=4",
-      "contributions": 17,
-      "html_url": "https://github.com/apps/github-actions",
-      "login": "github-actions[bot]"
-    },
-    {
       "avatar_url": "https://avatars.githubusercontent.com/u/237599657?v=4",
       "contributions": 14,
       "html_url": "https://github.com/samuelmarquesgit",
@@ -154,12 +148,6 @@
       "html_url": "https://github.com/edunotari",
       "login": "edunotari"
     },
-    {
-      "avatar_url": "https://avatars.githubusercontent.com/in/1143301?v=4",
-      "contributions": 2,
-      "html_url": "https://github.com/apps/copilot-swe-agent",
-      "login": "Copilot"
-    }
   ],
   "prAuthors": [
     {
@@ -202,13 +190,5 @@
       "avatar_url": "https://avatars.githubusercontent.com/u/65471872?v=4",
       "html_url": "https://github.com/edunotari"
     },
-    {
-      "login": "Copilot",
-      "total": 1,
-      "open": 0,
-      "closed": 1,
-      "avatar_url": "https://avatars.githubusercontent.com/in/1143301?v=4",
-      "html_url": "https://github.com/apps/copilot-swe-agent"
-    }
   ]
 }

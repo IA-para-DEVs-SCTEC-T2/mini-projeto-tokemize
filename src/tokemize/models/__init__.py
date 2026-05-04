@@ -305,6 +305,23 @@ class CompressedContext:
 
 
 @dataclass
+class SavedContext:
+    """Contexto comprimido persistido em disco pelo Context_Saver.
+
+    Attributes:
+        task_description: Descrição da tarefa original.
+        compressed_content: Conteúdo comprimido/resumido.
+        token_count: Estimativa de tokens do conteúdo comprimido.
+        context_file_path: Caminho do arquivo onde o contexto foi salvo.
+    """
+
+    task_description: str
+    compressed_content: str
+    token_count: int
+    context_file_path: str
+
+
+@dataclass
 class CachedContext:
     """Contexto verificado/atualizado pelo Context_Cache.
 
@@ -313,9 +330,11 @@ class CachedContext:
         content: Conteúdo final a ser enviado ao LLM.
         cache_hit: Indica se o resultado veio do cache.
         token_count: Estimativa de tokens do conteúdo.
+        context_file_path: Caminho do arquivo de contexto salvo em disco.
     """
 
     task_description: str
     content: str
     cache_hit: bool
     token_count: int
+    context_file_path: str = ""
