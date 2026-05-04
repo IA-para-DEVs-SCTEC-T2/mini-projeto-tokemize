@@ -13,6 +13,7 @@ import typer
 from tokemize.core.parser.repository_analyzer import analyze_repository
 from tokemize.core.selector.intelligent_selector import select_relevant_files
 from tokemize.core.optimizer.compressor import compress_context
+from tokemize.core.optimizer.context_saver import save_context
 from tokemize.core.context_cache import get_or_update_cache
 from tokemize.integrations.llm.llm_dispatcher import dispatch
 
@@ -26,6 +27,7 @@ STEP_NAMES = {
     "repository_analyzer": "Repository_Analyzer",
     "intelligent_selector": "Intelligent_Selector",
     "compressor": "Compressor",
+    "context_saver": "Context_Saver",
     "context_cache": "Context_Cache",
     "llm_dispatcher": "LLM_Dispatcher",
 }
@@ -98,15 +100,17 @@ def analyze(
     _validate_repo_path(repo_path)
     _validate_task_description(task_description)
 
-    typer.echo("[1/5] Analisando repositório...")
+    typer.echo("[1/6] Analisando repositório...")
     structure = _run_step(STEP_NAMES["repository_analyzer"], analyze_repository, repo_path)
-    typer.echo("[2/5] Selecionando arquivos relevantes...")
+    typer.echo("[2/6] Selecionando arquivos relevantes...")
     context = _run_step(STEP_NAMES["intelligent_selector"], select_relevant_files, structure, task_description)
-    typer.echo("[3/5] Comprimindo contexto...")
+    typer.echo("[3/6] Comprimindo contexto...")
     compressed = _run_step(STEP_NAMES["compressor"], compress_context, context)
-    typer.echo("[4/5] Verificando cache...")
-    cached = _run_step(STEP_NAMES["context_cache"], get_or_update_cache, compressed, task_description)
-    typer.echo("[5/5] Enviando ao LLM...")
+    typer.echo("[4/6] Salvando contexto...")
+    saved = _run_step(STEP_NAMES["context_saver"], save_context, compressed)
+    typer.echo("[5/6] Verificando cache...")
+    cached = _run_step(STEP_NAMES["context_cache"], get_or_update_cache, saved, task_description)
+    typer.echo("[6/6] Enviando ao LLM...")
     result = _run_step(STEP_NAMES["llm_dispatcher"], dispatch, cached)
     typer.echo("=== Resultado ===")
     typer.echo(result)

@@ -65,6 +65,7 @@ def test_stub_module_files_exist():
     assert (PKG / "core" / "parser" / "repository_analyzer.py").is_file()
     assert (PKG / "core" / "selector" / "intelligent_selector.py").is_file()
     assert (PKG / "core" / "optimizer" / "compressor.py").is_file()
+    assert (PKG / "core" / "optimizer" / "context_saver.py").is_file()
     assert (PKG / "core" / "context_cache.py").is_file()
     assert (PKG / "integrations" / "llm" / "llm_dispatcher.py").is_file()
 
@@ -131,15 +132,27 @@ def test_compress_context_signature():
     assert sig.return_annotation is CompressedContext
 
 
-def test_get_or_update_cache_signature():
-    from tokemize.core.context_cache import get_or_update_cache
-    from tokemize.models import CachedContext, CompressedContext
+def test_save_context_signature():
+    from tokemize.core.optimizer.context_saver import save_context
+    from tokemize.models import CompressedContext, SavedContext
 
-    sig = inspect.signature(get_or_update_cache)
+    sig = inspect.signature(save_context)
     params = sig.parameters
 
     assert "compressed" in params
     assert params["compressed"].annotation is CompressedContext
+    assert sig.return_annotation is SavedContext
+
+
+def test_get_or_update_cache_signature():
+    from tokemize.core.context_cache import get_or_update_cache
+    from tokemize.models import CachedContext, SavedContext
+
+    sig = inspect.signature(get_or_update_cache)
+    params = sig.parameters
+
+    assert "saved" in params
+    assert params["saved"].annotation is SavedContext
     assert "task_description" in params
     assert params["task_description"].annotation is str
     assert sig.return_annotation is CachedContext
@@ -167,6 +180,7 @@ def test_models_importable():
         CompressedContext,
         FileInfo,
         RepositoryStructure,
+        SavedContext,
         SelectedContext,
     )
 
@@ -197,6 +211,12 @@ def test_get_or_update_cache_importable_from_correct_path():
     from tokemize.core.context_cache import get_or_update_cache  # noqa: F401
 
     assert callable(get_or_update_cache)
+
+
+def test_save_context_importable_from_correct_path():
+    from tokemize.core.optimizer.context_saver import save_context  # noqa: F401
+
+    assert callable(save_context)
 
 
 def test_dispatch_importable_from_correct_path():
@@ -247,6 +267,21 @@ def test_compressed_context_instantiation():
     assert cc.task_description == "implementar autenticação"
     assert cc.compressed_content == "resumo do contexto"
     assert cc.token_count == 42
+
+
+def test_saved_context_instantiation():
+    from tokemize.models import SavedContext
+
+    sc = SavedContext(
+        task_description="implementar autenticação",
+        compressed_content="resumo do contexto",
+        token_count=42,
+        context_file_path="outputs/context_pack.md",
+    )
+    assert sc.task_description == "implementar autenticação"
+    assert sc.compressed_content == "resumo do contexto"
+    assert sc.token_count == 42
+    assert sc.context_file_path == "outputs/context_pack.md"
 
 
 def test_cached_context_instantiation():
