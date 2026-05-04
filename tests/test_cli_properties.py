@@ -36,6 +36,7 @@ _MODULE_PATCH_TO_STEP_NAME = {
     "cli.analyze_repository": "Repository_Analyzer",
     "cli.select_relevant_files": "Intelligent_Selector",
     "cli.compress_context": "Compressor",
+    "cli.save_context": "Context_Saver",
     "cli.get_or_update_cache": "Context_Cache",
     "cli.dispatch": "LLM_Dispatcher",
 }
@@ -57,6 +58,7 @@ def _mock_pipeline_success(llm_response: str = "resposta do LLM") -> dict:
         CachedContext,
         CompressedContext,
         RepositoryStructure,
+        SavedContext,
         SelectedContext,
     )
 
@@ -74,12 +76,21 @@ def _mock_pipeline_success(llm_response: str = "resposta do LLM") -> dict:
                 token_count=0,
             )
         ),
+        "cli.save_context": MagicMock(
+            return_value=SavedContext(
+                task_description=_VALID_TASK,
+                compressed_content="",
+                token_count=0,
+                context_file_path="outputs/context_pack.md",
+            )
+        ),
         "cli.get_or_update_cache": MagicMock(
             return_value=CachedContext(
                 task_description=_VALID_TASK,
                 content=llm_response,
                 cache_hit=False,
                 token_count=0,
+                context_file_path="outputs/context_pack.md",
             )
         ),
         "cli.dispatch": MagicMock(return_value=llm_response),
@@ -93,6 +104,7 @@ def _invoke_with_mocked_pipeline(repo_path: str, task: str, llm_response: str = 
         patch("cli.analyze_repository", mocks["cli.analyze_repository"]),
         patch("cli.select_relevant_files", mocks["cli.select_relevant_files"]),
         patch("cli.compress_context", mocks["cli.compress_context"]),
+        patch("cli.save_context", mocks["cli.save_context"]),
         patch("cli.get_or_update_cache", mocks["cli.get_or_update_cache"]),
         patch("cli.dispatch", mocks["cli.dispatch"]),
     ):
@@ -255,6 +267,7 @@ def test_pipeline_exception_exits_with_code_2(
             patch("cli.analyze_repository", mocks["cli.analyze_repository"]),
             patch("cli.select_relevant_files", mocks["cli.select_relevant_files"]),
             patch("cli.compress_context", mocks["cli.compress_context"]),
+            patch("cli.save_context", mocks["cli.save_context"]),
             patch("cli.get_or_update_cache", mocks["cli.get_or_update_cache"]),
             patch("cli.dispatch", mocks["cli.dispatch"]),
         ):

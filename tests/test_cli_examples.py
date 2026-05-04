@@ -3,7 +3,7 @@
 Verifica comportamentos determinísticos e específicos:
   - Invocação sem argumentos → ajuda + Exit_Code 0
   - Invocação com --help → ajuda + Exit_Code 0
-  - Mensagens de progresso [1/5] a [5/5] na ordem correta
+  - Mensagens de progresso [1/6] a [6/6] na ordem correta
   - Ordem de chamada dos módulos do pipeline com argumentos corretos
 
 Nota sobre invocação com Typer 0.25+:
@@ -32,6 +32,7 @@ def _make_pipeline_mocks():
         CachedContext,
         CompressedContext,
         RepositoryStructure,
+        SavedContext,
         SelectedContext,
     )
 
@@ -44,17 +45,26 @@ def _make_pipeline_mocks():
             token_count=10,
         )
     )
+    mock_save = MagicMock(
+        return_value=SavedContext(
+            task_description=_VALID_TASK,
+            compressed_content="resumo",
+            token_count=10,
+            context_file_path="outputs/context_pack.md",
+        )
+    )
     mock_cache = MagicMock(
         return_value=CachedContext(
             task_description=_VALID_TASK,
             content="resposta do LLM",
             cache_hit=False,
             token_count=10,
+            context_file_path="outputs/context_pack.md",
         )
     )
     mock_dispatch = MagicMock(return_value="resposta do LLM")
 
-    return mock_analyze, mock_select, mock_compress, mock_cache, mock_dispatch
+    return mock_analyze, mock_select, mock_compress, mock_save, mock_cache, mock_dispatch
 
 
 # ---------------------------------------------------------------------------
@@ -84,43 +94,45 @@ def test_analyze_with_help_flag_shows_descriptions():
 
 
 # ---------------------------------------------------------------------------
-# Task 7.3: Mensagens de progresso [1/5] a [5/5]
-# Requirements: 5.1, 5.2, 5.3, 5.4, 5.5
+# Task 7.3: Mensagens de progresso [1/6] a [6/6]
+# Requirements: 5.1, 5.2, 5.3, 5.4, 5.5, 5.6
 # ---------------------------------------------------------------------------
 
 def test_progress_messages_appear_in_output():
-    """Todas as mensagens de progresso [1/5] a [5/5] devem aparecer na saída."""
-    mock_analyze, mock_select, mock_compress, mock_cache, mock_dispatch = _make_pipeline_mocks()
+    """Todas as mensagens de progresso [1/6] a [6/6] devem aparecer na saída."""
+    mock_analyze, mock_select, mock_compress, mock_save, mock_cache, mock_dispatch = _make_pipeline_mocks()
 
     with (
         patch("cli.analyze_repository", mock_analyze),
         patch("cli.select_relevant_files", mock_select),
         patch("cli.compress_context", mock_compress),
+        patch("cli.save_context", mock_save),
         patch("cli.get_or_update_cache", mock_cache),
         patch("cli.dispatch", mock_dispatch),
     ):
         result = runner.invoke(app, [_VALID_REPO, _VALID_TASK])
 
     assert result.exit_code == 0
-    for i in range(1, 6):
-        assert f"[{i}/5]" in result.output, f"Mensagem [{i}/5] não encontrada na saída"
+    for i in range(1, 7):
+        assert f"[{i}/6]" in result.output, f"Mensagem [{i}/6] não encontrada na saída"
 
 
 def test_progress_messages_appear_in_correct_order():
-    """As mensagens de progresso devem aparecer na ordem [1/5], [2/5], ..., [5/5]."""
-    mock_analyze, mock_select, mock_compress, mock_cache, mock_dispatch = _make_pipeline_mocks()
+    """As mensagens de progresso devem aparecer na ordem [1/6], [2/6], ..., [6/6]."""
+    mock_analyze, mock_select, mock_compress, mock_save, mock_cache, mock_dispatch = _make_pipeline_mocks()
 
     with (
         patch("cli.analyze_repository", mock_analyze),
         patch("cli.select_relevant_files", mock_select),
         patch("cli.compress_context", mock_compress),
+        patch("cli.save_context", mock_save),
         patch("cli.get_or_update_cache", mock_cache),
         patch("cli.dispatch", mock_dispatch),
     ):
         result = runner.invoke(app, [_VALID_REPO, _VALID_TASK])
 
     output = result.output
-    positions = [output.find(f"[{i}/5]") for i in range(1, 6)]
+    positions = [output.find(f"[{i}/6]") for i in range(1, 7)]
     # Todos devem estar presentes
     assert all(pos >= 0 for pos in positions), f"Posições: {positions}"
     # Devem estar em ordem crescente
@@ -130,7 +142,7 @@ def test_progress_messages_appear_in_correct_order():
 
 
 def test_progress_message_1_before_repository_analyzer():
-    """[1/5] deve aparecer antes de Repository_Analyzer ser chamado."""
+    """[1/6] deve aparecer antes de Repository_Analyzer ser chamado."""
     call_order = []
 
     def tracking_analyze(repo_path):
@@ -138,16 +150,26 @@ def test_progress_message_1_before_repository_analyzer():
         from tokemize.models import RepositoryStructure
         return RepositoryStructure(root_path=repo_path)
 
-    mock_select, mock_compress, mock_cache, mock_dispatch = (
-        MagicMock(), MagicMock(), MagicMock(), MagicMock()
+    mock_select, mock_compress, mock_save, mock_cache, mock_dispatch = (
+        MagicMock(), MagicMock(), MagicMock(), MagicMock(), MagicMock()
     )
-    from tokemize.models import CachedContext, CompressedContext, SelectedContext
+    from tokemize.models import CachedContext, CompressedContext, SavedContext, SelectedContext
     mock_select.return_value = SelectedContext(task_description=_VALID_TASK)
     mock_compress.return_value = CompressedContext(
         task_description=_VALID_TASK, compressed_content="", token_count=0
     )
+    mock_save.return_value = SavedContext(
+        task_description=_VALID_TASK,
+        compressed_content="",
+        token_count=0,
+        context_file_path="outputs/context_pack.md",
+    )
     mock_cache.return_value = CachedContext(
-        task_description=_VALID_TASK, content="ok", cache_hit=False, token_count=0
+        task_description=_VALID_TASK,
+        content="ok",
+        cache_hit=False,
+        token_count=0,
+        context_file_path="outputs/context_pack.md",
     )
     mock_dispatch.return_value = "ok"
 
@@ -155,13 +177,14 @@ def test_progress_message_1_before_repository_analyzer():
         patch("cli.analyze_repository", side_effect=tracking_analyze),
         patch("cli.select_relevant_files", mock_select),
         patch("cli.compress_context", mock_compress),
+        patch("cli.save_context", mock_save),
         patch("cli.get_or_update_cache", mock_cache),
         patch("cli.dispatch", mock_dispatch),
     ):
         result = runner.invoke(app, [_VALID_REPO, _VALID_TASK])
 
     assert result.exit_code == 0
-    assert "[1/5]" in result.output
+    assert "[1/6]" in result.output
     assert "analyze_repository" in call_order
 
 
@@ -178,6 +201,7 @@ def test_pipeline_called_in_correct_order():
         CachedContext,
         CompressedContext,
         RepositoryStructure,
+        SavedContext,
         SelectedContext,
     )
 
@@ -186,8 +210,18 @@ def test_pipeline_called_in_correct_order():
     compressed = CompressedContext(
         task_description=_VALID_TASK, compressed_content="resumo", token_count=5
     )
+    saved = SavedContext(
+        task_description=_VALID_TASK,
+        compressed_content="resumo",
+        token_count=5,
+        context_file_path="outputs/context_pack.md",
+    )
     cached = CachedContext(
-        task_description=_VALID_TASK, content="resposta", cache_hit=False, token_count=5
+        task_description=_VALID_TASK,
+        content="resposta",
+        cache_hit=False,
+        token_count=5,
+        context_file_path="outputs/context_pack.md",
     )
 
     def track(name, return_value):
@@ -200,6 +234,7 @@ def test_pipeline_called_in_correct_order():
         patch("cli.analyze_repository", side_effect=track("analyze_repository", structure)),
         patch("cli.select_relevant_files", side_effect=track("select_relevant_files", selected)),
         patch("cli.compress_context", side_effect=track("compress_context", compressed)),
+        patch("cli.save_context", side_effect=track("save_context", saved)),
         patch("cli.get_or_update_cache", side_effect=track("get_or_update_cache", cached)),
         patch("cli.dispatch", side_effect=track("dispatch", "resposta")),
     ):
@@ -210,6 +245,7 @@ def test_pipeline_called_in_correct_order():
         "analyze_repository",
         "select_relevant_files",
         "compress_context",
+        "save_context",
         "get_or_update_cache",
         "dispatch",
     ], f"Ordem incorreta: {call_order}"
@@ -221,6 +257,7 @@ def test_pipeline_called_with_correct_arguments():
         CachedContext,
         CompressedContext,
         RepositoryStructure,
+        SavedContext,
         SelectedContext,
     )
 
@@ -229,13 +266,24 @@ def test_pipeline_called_with_correct_arguments():
     compressed = CompressedContext(
         task_description=_VALID_TASK, compressed_content="resumo", token_count=5
     )
+    saved = SavedContext(
+        task_description=_VALID_TASK,
+        compressed_content="resumo",
+        token_count=5,
+        context_file_path="outputs/context_pack.md",
+    )
     cached = CachedContext(
-        task_description=_VALID_TASK, content="resposta", cache_hit=False, token_count=5
+        task_description=_VALID_TASK,
+        content="resposta",
+        cache_hit=False,
+        token_count=5,
+        context_file_path="outputs/context_pack.md",
     )
 
     mock_analyze = MagicMock(return_value=structure)
     mock_select = MagicMock(return_value=selected)
     mock_compress = MagicMock(return_value=compressed)
+    mock_save = MagicMock(return_value=saved)
     mock_cache = MagicMock(return_value=cached)
     mock_dispatch = MagicMock(return_value="resposta")
 
@@ -243,6 +291,7 @@ def test_pipeline_called_with_correct_arguments():
         patch("cli.analyze_repository", mock_analyze),
         patch("cli.select_relevant_files", mock_select),
         patch("cli.compress_context", mock_compress),
+        patch("cli.save_context", mock_save),
         patch("cli.get_or_update_cache", mock_cache),
         patch("cli.dispatch", mock_dispatch),
     ):
@@ -259,8 +308,11 @@ def test_pipeline_called_with_correct_arguments():
     # Req 4.3: Compressor recebe resultado do Intelligent_Selector
     mock_compress.assert_called_once_with(selected)
 
-    # Req 4.4: Context_Cache recebe resultado do Compressor + task_description
-    mock_cache.assert_called_once_with(compressed, _VALID_TASK)
+    # Req 4.4: Context_Saver recebe resultado do Compressor
+    mock_save.assert_called_once_with(compressed)
 
-    # Req 4.5: LLM_Dispatcher recebe resultado do Context_Cache
+    # Req 4.5: Context_Cache recebe resultado do Context_Saver + task_description
+    mock_cache.assert_called_once_with(saved, _VALID_TASK)
+
+    # Req 4.6: LLM_Dispatcher recebe resultado do Context_Cache
     mock_dispatch.assert_called_once_with(cached)
