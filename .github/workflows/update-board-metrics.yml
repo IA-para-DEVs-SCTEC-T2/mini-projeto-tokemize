@@ -62,14 +62,14 @@ jobs:
 
           # ── Contributors com avatares (REST) ─────────────────────────────
           CONTRIBUTORS=$(gh api "/repos/$OWNER/$REPO/contributors?per_page=30" \
-            --jq '[.[] | select(.type != "Bot") | {login: .login, contributions: .contributions, avatar_url: .avatar_url, html_url: .html_url}]' \
+            --jq '[.[] | {login: .login, contributions: .contributions, avatar_url: .avatar_url, html_url: .html_url}]' \
             2>/dev/null || echo "[]")
 
           CONTRIBUTORS_COUNT=$(echo "$CONTRIBUTORS" | python3 -c "import json,sys; print(len(json.load(sys.stdin)))" 2>/dev/null || echo "0")
 
           # ── PRs por autor (REST) ─────────────────────────────────────────
           ALL_PRS=$(gh api "/repos/$OWNER/$REPO/pulls?state=all&per_page=100" \
-            --jq '[.[] | select(.user.type != "Bot") | {login: .user.login, state: .state, avatar_url: .user.avatar_url, html_url: .user.html_url}]' \
+            --jq '[.[] | {login: .user.login, state: .state, avatar_url: .user.avatar_url, html_url: .user.html_url}]' \
             2>/dev/null || echo "[]")
 
           # ── Board metrics (GraphQL) ──────────────────────────────────────
