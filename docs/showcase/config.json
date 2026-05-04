@@ -47,7 +47,7 @@
     {
       "id": "indexer",
       "label": "Indexer",
-      "status": "planned"
+      "status": "in_progress"
     },
     {
       "id": "selector",
@@ -62,12 +62,12 @@
     {
       "id": "integrations/llm",
       "label": "LLM Integration",
-      "status": "in_progress"
+      "status": "done"
     },
     {
       "id": "integrations/embeddings",
       "label": "Embeddings",
-      "status": "planned"
+      "status": "in_progress"
     }
   ],
   "team": [
@@ -97,41 +97,42 @@
     "readme": "https://github.com/IA-para-DEVs-SCTEC-T2/mini-projeto-tokemize#readme"
   },
   "boardMetrics": {
-    "projectTitle": "MiniProjeto",
+    "projectTitle": "Mini Projeto Tokemize - Time 4",
     "projectNumber": 5,
-    "totalCards": 16,
+    "totalCards": 22,
     "cardsByStatus": {
-      "Revision": 2,
-      "Done": 9,
-      "Todo": 5
+      "In Progress": 1,
+      "Blocked": 2,
+      "Done": 12,
+      "Todo": 7
     },
-    "lastUpdatedAt": "2026-05-03T19:00:25.008225+00:00"
+    "lastUpdatedAt": "2026-05-04T14:02:26.219554+00:00"
   },
   "repoStats": {
-    "totalCommits": 77,
-    "openPRs": 2,
-    "closedPRs": 26,
+    "totalCommits": 92,
+    "openPRs": 0,
+    "closedPRs": 30,
     "contributors": 7,
     "activeBranches": 12,
-    "lastCommitAt": "2026-05-03T13:11:42Z",
-    "fetchedAt": "2026-05-03T19:00:25.008314+00:00"
+    "lastCommitAt": "2026-05-04T08:30:22Z",
+    "fetchedAt": "2026-05-04T14:02:26.219676+00:00"
   },
   "contributors": [
     {
       "avatar_url": "https://avatars.githubusercontent.com/u/22981568?v=4",
-      "contributions": 32,
+      "contributions": 40,
       "html_url": "https://github.com/jrcosta",
       "login": "jrcosta"
     },
     {
       "avatar_url": "https://avatars.githubusercontent.com/u/237599657?v=4",
-      "contributions": 11,
+      "contributions": 14,
       "html_url": "https://github.com/samuelmarquesgit",
       "login": "samuelmarquesgit"
     },
     {
       "avatar_url": "https://avatars.githubusercontent.com/u/14351143?v=4",
-      "contributions": 9,
+      "contributions": 10,
       "html_url": "https://github.com/gvmertens",
       "login": "gvmertens"
     },
@@ -152,10 +153,18 @@
     {
       "login": "jrcosta",
       "total": 15,
-      "open": 2,
-      "closed": 13,
+      "open": 0,
+      "closed": 15,
       "avatar_url": "https://avatars.githubusercontent.com/u/22981568?v=4",
       "html_url": "https://github.com/jrcosta"
+    },
+    {
+      "login": "samuelmarquesgit",
+      "total": 6,
+      "open": 0,
+      "closed": 6,
+      "avatar_url": "https://avatars.githubusercontent.com/u/237599657?v=4",
+      "html_url": "https://github.com/samuelmarquesgit"
     },
     {
       "login": "gvmertens",
@@ -164,14 +173,6 @@
       "closed": 4,
       "avatar_url": "https://avatars.githubusercontent.com/u/14351143?v=4",
       "html_url": "https://github.com/gvmertens"
-    },
-    {
-      "login": "samuelmarquesgit",
-      "total": 4,
-      "open": 0,
-      "closed": 4,
-      "avatar_url": "https://avatars.githubusercontent.com/u/237599657?v=4",
-      "html_url": "https://github.com/samuelmarquesgit"
     },
     {
       "login": "PauloSergioLR",
