@@ -10,6 +10,10 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Optional
 
+from tokemize.models.artifact import Artifact
+from tokemize.models.file_analysis import FileAnalysis
+from tokemize.models.optimized_prompt import OptimizedPrompt
+
 
 # ── Scanner ───────────────────────────────────────────────────────────────────
 
@@ -297,11 +301,13 @@ class CompressedContext:
         task_description: Descrição da tarefa original.
         compressed_content: Conteúdo comprimido/resumido.
         token_count: Estimativa de tokens do conteúdo comprimido.
+        artifact_count: Número de artefatos incluídos no contexto comprimido.
     """
 
     task_description: str
     compressed_content: str
     token_count: int
+    artifact_count: int = 0
 
 
 @dataclass
