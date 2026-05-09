@@ -64,7 +64,7 @@ def _validate_task_description(task_description: str) -> None:
     if not stripped:
         typer.echo("Erro: a descrição da tarefa não pode ser vazia.")
         raise typer.Exit(code=1)
-    non_whitespace = len(stripped.replace(" ", "").replace("\t", "").replace("\n", ""))
+    non_whitespace = len("".join(stripped.split()))
     if non_whitespace < 10:
         typer.echo("Erro: a descrição da tarefa deve ter pelo menos 10 caracteres.")
         raise typer.Exit(code=1)

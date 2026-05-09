@@ -4,8 +4,6 @@ Etapa intermediária do pipeline CLI que salva o contexto comprimido em
 um arquivo antes de enviá-lo ao LLM, permitindo auditoria e reuso.
 """
 
-from __future__ import annotations
-
 from tokemize.models import CompressedContext, SavedContext
 
 
