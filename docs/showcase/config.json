@@ -107,16 +107,16 @@
       "Revision": 1,
       "In Progress": 1
     },
-    "lastUpdatedAt": "2026-05-09T02:51:01.667429+00:00"
+    "lastUpdatedAt": "2026-05-09T07:57:43.792700+00:00"
   },
   "repoStats": {
-    "totalCommits": 121,
-    "openPRs": 2,
-    "closedPRs": 41,
+    "totalCommits": 122,
+    "openPRs": 0,
+    "closedPRs": 43,
     "contributors": 7,
-    "activeBranches": 5,
-    "lastCommitAt": "2026-05-08T19:18:56Z",
-    "fetchedAt": "2026-05-09T02:51:01.667529+00:00"
+    "activeBranches": 3,
+    "lastCommitAt": "2026-05-09T02:51:01Z",
+    "fetchedAt": "2026-05-09T07:57:43.792779+00:00"
   },
   "contributors": [
     {
@@ -127,7 +127,7 @@
     },
     {
       "avatar_url": "https://avatars.githubusercontent.com/in/15368?v=4",
-      "contributions": 34,
+      "contributions": 35,
       "html_url": "https://github.com/apps/github-actions",
       "login": "github-actions[bot]"
     },
@@ -174,16 +174,16 @@
     {
       "login": "samuelmarquesgit",
       "total": 7,
-      "open": 1,
-      "closed": 6,
+      "open": 0,
+      "closed": 7,
       "avatar_url": "https://avatars.githubusercontent.com/u/237599657?v=4",
       "html_url": "https://github.com/samuelmarquesgit"
     },
     {
       "login": "gvmertens",
       "total": 5,
-      "open": 1,
-      "closed": 4,
+      "open": 0,
+      "closed": 5,
       "avatar_url": "https://avatars.githubusercontent.com/u/14351143?v=4",
       "html_url": "https://github.com/gvmertens"
     },
