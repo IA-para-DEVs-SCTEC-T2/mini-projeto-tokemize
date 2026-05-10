@@ -27,15 +27,15 @@ todo o time — humanos e agentes de IA — operem na mesma frequência.
 ## 🎯 Visão Geral
 
 **Projeto:** Tokemize  
-**Objetivo:** Middleware inteligente que otimiza o contexto enviado a LLMs, selecionando apenas o que é relevante para cada requisição técnica — reduzindo custo de tokens e aumentando a precisão das respostas.  
+**Objetivo:** Otimização de Contexto para LLMs. O Tokemize analisa repositórios locais, seleciona artefatos relevantes para uma tarefa técnica, compacta o contexto e gera um prompt otimizado para uso posterior em chatbots de IDE ou outros LLMs.
 **Público-alvo:** Desenvolvedores e equipes que utilizam agentes de IA no desenvolvimento de software.  
 **Repositório:** `git@github.com:IA-para-DEVs-SCTEC-T2/mini-projeto-tokemize.git`
 
 ### O problema que resolve
 
 ```
-Contexto bruto (repositório inteiro) ──► LLM  =  💸 caro + 📉 impreciso
-Contexto otimizado (Tokemize)        ──► LLM  =  ✅ barato + 🎯 preciso
+Contexto bruto (repositório inteiro) ──► prompt manual  =  💸 caro + 📉 impreciso
+Contexto otimizado (Tokemize)        ──► prompt pronto  =  ✅ menor + 🎯 direcionado
 ```
 
 ---
@@ -48,8 +48,6 @@ Contexto otimizado (Tokemize)        ──► LLM  =  ✅ barato + 🎯 preciso
 | **Análise Sintática** | Tree-sitter | 0.25.2 | Parser incremental, suporte a 40+ linguagens, API declarativa |
 | **Grammars** | tree-sitter-python / java / javascript / typescript | latest | Grammars oficiais mantidos pela comunidade Tree-sitter |
 | **Indexação Vetorial** | FAISS | latest | Busca por similaridade semântica de alta performance (Meta AI) |
-| **LLM — OpenAI** | GPT-4o / GPT-4-turbo | API | Provedor primário de LLM |
-| **LLM — Anthropic** | Claude Sonnet / Opus | API | Provedor alternativo de LLM |
 | **CLI** | Typer | 0.12.3 | Interface de linha de comando idiomática para Python |
 | **Config** | python-dotenv | latest | Variáveis de ambiente via `.env`, nunca hardcoded |
 | **Testes** | pytest + pytest-cov | 8.3.5 / 6.1.0 | Framework padrão Python, cobertura integrada |
@@ -60,7 +58,7 @@ Contexto otimizado (Tokemize)        ──► LLM  =  ✅ barato + 🎯 preciso
 ## 🏗️ Arquitetura do Pipeline
 
 ```
-Usuário (query + repositório)
+Usuário (tarefa + repositório)
         │
         ▼
 ┌───────────────────────────────────────────────────┐
@@ -74,15 +72,16 @@ Usuário (query + repositório)
 │         (orquestrador Scanner + Analyzer)         │
 │                │                                  │
 │                ▼                                  │
-│  Indexer (FAISS) ──► Selector ──► Optimizer       │
-│  (embeddings)       (relevância)  (compressão)    │
+│  IntelligentSelector ──► Compressor               │
+│  (relevância)          (compactação)              │
+│                │                                  │
+│                ▼                                  │
+│  ContextStore ──► PromptBuilder ──► Clipboard     │
+│  (persistência)  (prompt final)    (uso externo)  │
 └───────────────────────────────────────────────────┘
         │
         ▼
-   LLM (OpenAI / Anthropic)
-        │
-        ▼
-   Resposta otimizada
+   Prompt otimizado
 ```
 
 ---
@@ -93,15 +92,18 @@ Usuário (query + repositório)
 mini-projeto-tokemize/
 ├── src/tokemize/               # Pacote principal (instalável via pip)
 │   ├── core/
-│   │   └── parser/             # Scanner, TreeSitterAnalyzer, RepositoryParser
+│   │   ├── parser/             # Scanner, TreeSitterAnalyzer, RepositoryParser
+│   │   ├── optimizer/          # Compressor e utilitários de compactação
+│   │   ├── context_store.py    # Persistência local do contexto compacto
+│   │   └── prompt_builder.py   # Geração do prompt otimizado
 │   ├── integrations/
-│   │   └── llm/                # Clientes OpenAI e Anthropic (protocol.py)
+│   │   └── clipboard.py        # Cópia do prompt para a área de transferência
 │   ├── models/                 # Dataclasses: Artifact, Chunk, etc.
 │   ├── scanner.py              # Módulo público (re-export)
 │   ├── tree_sitter_analyzer.py # Módulo público (re-export)
 │   ├── repository_parser.py    # Módulo público (re-export)
 │   ├── selector.py             # Seleção semântica de contexto
-│   ├── summarizer.py           # Sumarização com LLM
+│   ├── summarizer.py           # Sumarização local/legada de contexto
 │   └── cache.py                # Cache de contexto
 ├── tests/                      # Testes unitários e de integração
 ├── docs/                       # Documentação técnica
@@ -128,10 +130,11 @@ mini-projeto-tokemize/
 | `core/parser/scanner.py` | Percorre o repositório, aplica ignores, coleta metadados |
 | `core/parser/tree_sitter_analyzer.py` | Extrai classes, funções, métodos e imports via Tree-sitter |
 | `core/parser/repository_parser.py` | Orquestra Scanner → Analyzer, retorna `RepositoryParseResult` |
-| `integrations/llm/` | Clientes abstraídos para OpenAI e Anthropic |
+| `integrations/clipboard.py` | Copia o prompt otimizado para a área de transferência |
 | `models/` | Dataclasses tipadas que trafegam entre camadas |
 | `selector.py` | Busca semântica no índice FAISS |
-| `summarizer.py` | Compressão e resumo semântico via LLM |
+| `core/optimizer/compressor.py` | Compressão local do contexto selecionado |
+| `core/prompt_builder.py` | Geração do prompt final em Markdown |
 | `cache.py` | Cache de contexto para consultas repetitivas |
 
 ---
@@ -203,8 +206,8 @@ Ao trabalhar neste projeto, o agente deve:
 
 1. **Ler os specs** em `.kiro/specs/` antes de implementar qualquer feature
 2. **Seguir a separação de camadas** — nunca misturar lógica de parsing com seleção de contexto
-3. **Nunca instanciar clientes de LLM** fora de `integrations/llm/`
-4. **Nunca enviar contexto raw** sem passar pelo pipeline de otimização
+3. **Não adicionar chamada direta a provedores de LLM** ao fluxo principal
+4. **Nunca gerar prompt com contexto raw** sem passar pelo pipeline de otimização
 5. **Sempre adicionar type hints** e docstrings Google Style
 6. **Rodar os testes** após qualquer mudança: `python -m pytest tests/`
 7. **Commits semânticos** em toda entrega, mesmo incremental
@@ -225,15 +228,17 @@ Ao trabalhar neste projeto, o agente deve:
 
 ### Fase 2 — Núcleo Semântico 🔄
 - [x] `selector.py` — seleção semântica (em desenvolvimento)
-- [x] `summarizer.py` — sumarização com LLM (em desenvolvimento)
+- [x] `compressor.py` — compactação local do contexto selecionado
+- [x] `context_store.py` — persistência local do contexto compacto
+- [x] `prompt_builder.py` — geração do prompt otimizado
 - [x] `cache.py` — cache de contexto (em desenvolvimento)
 - [ ] `Indexer` — indexação vetorial com FAISS
 - [ ] `EmbeddingsClient` — geração de embeddings multi-provedor
 
-### Fase 3 — Otimização e Integração 🔲
+### Fase 3 — Otimização de Contexto 🔲
 - [ ] `Optimizer` — compressão e resumo semântico
-- [ ] `LLMClient` — integração OpenAI + Anthropic com retry e rate limit
-- [ ] Pipeline completo: Scanner → Indexer → Selector → Optimizer → LLM
+- [ ] `Indexer` — indexação vetorial com FAISS
+- [ ] Pipeline completo: Scanner → Analyzer → Selector → Compressor → PromptBuilder
 
 ### Fase 4 — Produto Final 🔲
 - [ ] CLI público (`tokemize query "..."`)
