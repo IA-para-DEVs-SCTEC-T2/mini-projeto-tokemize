@@ -1,55 +1,61 @@
 # Roadmap
 
-Este documento apresenta o progresso atual dos módulos do Tokemize e os próximos passos planejados.
+Este documento apresenta o progresso atual dos modulos do Tokemize e os proximos passos planejados.
 
 ---
 
-## Status dos Módulos
+## Status dos Modulos
 
-| Módulo | Descrição | Status |
+| Modulo | Descricao | Status |
 |---|---|---|
-| **Parser** | Análise sintática do repositório com Tree-sitter | ✅ Concluído |
-| **Selector** | Seleção semântica dos trechos mais relevantes | 🔄 Em desenvolvimento |
-| **Indexer** | Indexação vetorial com FAISS | 🔲 Planejado |
-| **Optimizer** | Compressão e resumo semântico do contexto | 🔲 Planejado |
-| **LLM Integration** | Integração com OpenAI, Anthropic e Groq | 🔲 Planejado |
-| **Embeddings** | Geração de embeddings multi-provedor | 🔲 Planejado |
+| **Repository Analyzer** | Analise do repositorio e extracao de artefatos | Concluido |
+| **Intelligent Selector** | Selecao dos artefatos mais relevantes para a tarefa | Concluido |
+| **Compressor** | Compactacao do contexto selecionado | Concluido |
+| **Context Store** | Persistencia local do contexto compacto | Concluido |
+| **Prompt Builder** | Geracao do prompt otimizado em Markdown | Concluido |
+| **Clipboard/Output** | Copia, impressao ou escrita do prompt gerado | Concluido |
+| **Indexer** | Indexacao vetorial para busca semantica | Planejado |
+| **Embeddings** | Geracao de embeddings para melhorar selecao futura | Planejado |
 
 ---
 
 ## Fases
 
-### Fase 1 — Fundação ✅
+### Fase 1 - Fundacao
 
-- [x] Definição da arquitetura e dos componentes
-- [x] Criação da estrutura do repositório
-- [x] Configuração de CI/CD (commitlint, branch rules, gitflow)
-- [x] Parser: mapeamento e análise sintática do código-fonte
+- [x] Definicao da arquitetura e dos componentes
+- [x] Criacao da estrutura do repositorio
+- [x] Configuracao de CI/CD (commitlint, branch rules, gitflow)
+- [x] Analise do repositorio e extracao de artefatos
 
-### Fase 2 — Núcleo Semântico 🔄
+### Fase 2 - Pipeline Local de Contexto
 
-- [x] Selector: busca semântica por trechos relevantes *(em desenvolvimento)*
-- [ ] Indexer: geração e armazenamento de embeddings com FAISS
-- [ ] Embeddings: módulo de geração de embeddings multi-provedor
+- [x] Selecao de artefatos relevantes por tarefa
+- [x] Compactacao do contexto selecionado
+- [x] Persistencia local em `.tokemize/context/`
+- [x] Geracao de prompt otimizado
+- [x] Copia para area de transferencia, impressao e escrita em arquivo
 
-### Fase 3 — Otimização e Integração 🔲
+### Fase 3 - Qualidade da Otimizacao
 
-- [ ] Optimizer: compressão e resumo semântico do contexto selecionado
-- [ ] LLM Integration: integração com OpenAI, Anthropic e Groq
-- [ ] Cache de contexto para consultas repetitivas
+- [ ] Indexacao vetorial com FAISS
+- [ ] Embeddings para ranqueamento semantico
+- [ ] Heuristicas de reducao de contexto por budget de tokens
+- [ ] Benchmarks de tamanho, relevancia e tempo de execucao
 
-### Fase 4 — Produto Final 🔲
+### Fase 4 - Produto Final
 
-- [ ] CLI ou SDK público para integração com ferramentas externas
-- [ ] Documentação de uso e exemplos para desenvolvedores
-- [ ] Testes de integração e benchmarks de custo/qualidade
+- [ ] Documentacao de uso e exemplos para desenvolvedores
+- [ ] Testes de integracao de ponta a ponta
+- [ ] Empacotamento e distribuicao da CLI
+- [ ] Dashboard do projeto atualizado no GitHub Pages
 
 ---
 
 ## Legenda
 
-| Símbolo | Significado |
+| Status | Significado |
 |---|---|
-| ✅ | Concluído |
-| 🔄 | Em desenvolvimento |
-| 🔲 | Planejado |
+| Concluido | Modulo implementado |
+| Em desenvolvimento | Modulo em evolucao |
+| Planejado | Modulo ainda nao implementado |

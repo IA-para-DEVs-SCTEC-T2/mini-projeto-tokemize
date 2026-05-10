@@ -1,56 +1,57 @@
 # Tecnologias Utilizadas
 
-Este documento descreve a stack tecnológica do Tokemize, com justificativas para cada escolha.
+Este documento descreve a stack tecnologica do Tokemize, com justificativas para cada escolha.
 
 ---
 
-## Back-end / Orquestração
+## Back-end / CLI
 
 ### Python 3
 
-- **Papel:** linguagem principal do projeto, responsável pela orquestração de todos os módulos.
-- **Justificativa:** ecossistema rico para IA/ML (bibliotecas como FAISS, transformers, openai), sintaxe expressiva e suporte nativo a tipos com anotações.
-- **Documentação:** https://docs.python.org/3/
+- **Papel:** linguagem principal do projeto, responsavel pela CLI e pela orquestracao do pipeline de contexto.
+- **Justificativa:** sintaxe expressiva, suporte nativo a tipos com anotacoes e bom ecossistema para analise de codigo, automacao e processamento textual.
+- **Documentacao:** https://docs.python.org/3/
+
+### Typer
+
+- **Papel:** construcao dos comandos `tokemize` e `toke`.
+- **Justificativa:** cria CLIs tipadas e simples de manter a partir de funcoes Python.
+- **Documentacao:** https://typer.tiangolo.com/
+
+### pyperclip
+
+- **Papel:** copia do prompt otimizado para a area de transferencia.
+- **Justificativa:** reduz atrito no fluxo de uso, permitindo colar o prompt diretamente no chatbot da IDE.
+- **Documentacao:** https://pyperclip.readthedocs.io/
 
 ---
 
-## Análise de Código
+## Analise de Codigo
 
 ### Tree-sitter
 
-- **Papel:** análise sintática (parsing) do código-fonte dos repositórios.
-- **Justificativa:** biblioteca de parsing incremental e eficiente que suporta dezenas de linguagens de programação. Gera uma AST (Abstract Syntax Tree) precisa, permitindo extrair símbolos, funções e estruturas sem depender de heurísticas de texto.
-- **Documentação:** https://tree-sitter.github.io/tree-sitter/
+- **Papel:** analise sintatica (parsing) do codigo-fonte dos repositorios.
+- **Justificativa:** biblioteca de parsing incremental e eficiente que suporta dezenas de linguagens de programacao. Gera uma AST precisa, permitindo extrair simbolos, funcoes e estruturas sem depender apenas de heuristicas de texto.
+- **Documentacao:** https://tree-sitter.github.io/tree-sitter/
 
 ---
 
-## Indexação e Busca Semântica
+## Indexacao e Busca Semantica
 
 ### FAISS
 
-- **Papel:** indexação vetorial e busca semântica eficiente sobre os embeddings gerados a partir do código.
-- **Justificativa:** biblioteca open-source da Meta AI, otimizada para buscas de vizinhança em espaços de alta dimensão. Permite encontrar trechos de código semanticamente similares à query do usuário em tempo sub-linear.
-- **Documentação:** https://faiss.ai/index.html
+- **Papel:** tecnologia planejada para indexacao vetorial e busca semantica eficiente sobre embeddings gerados a partir do codigo.
+- **Justificativa:** biblioteca open-source da Meta AI, otimizada para buscas de vizinhanca em espacos de alta dimensao. Pode ajudar a encontrar trechos de codigo similares a tarefa do usuario em tempo sub-linear.
+- **Documentacao:** https://faiss.ai/index.html
 
 ---
 
-## Integrações com LLMs
+## Otimizacao de Contexto
 
-### OpenAI API
+### Pipeline local
 
-- **Papel:** provedor de LLM (ex.: GPT-4, GPT-3.5) e de embeddings (ex.: `text-embedding-ada-002`).
-- **Documentação:** https://platform.openai.com/docs
-
-### Anthropic API
-
-- **Papel:** provedor de LLM alternativo (ex.: Claude).
-- **Documentação:** https://docs.anthropic.com
-
-### Groq
-
-- **Papel:** provedor de inferência de alta velocidade com modelos open-source (ex.: LLaMA 3, Mixtral).
-- **Justificativa:** latência ultra-baixa via hardware LPU, útil para casos em que velocidade de resposta é crítica.
-- **Documentação:** https://console.groq.com/docs/overview
+- **Papel:** analisar repositorio, selecionar artefatos, compactar contexto, salvar o contexto e gerar o prompt final.
+- **Justificativa:** mantem o Tokemize independente de provedores de LLM. O usuario escolhe onde usar o prompt otimizado depois que ele e gerado.
 
 ---
 
@@ -59,24 +60,24 @@ Este documento descreve a stack tecnológica do Tokemize, com justificativas par
 ### Vanilla JavaScript (ES Modules)
 
 - **Papel:** front-end do dashboard do projeto (GitHub Pages).
-- **Justificativa:** sem dependência de framework — manutenção simples e carregamento rápido.
+- **Justificativa:** sem dependencia de framework, com manutencao simples e carregamento rapido.
 
 ### Vitest
 
-- **Papel:** framework de testes unitários do showcase.
-- **Documentação:** https://vitest.dev/
+- **Papel:** framework de testes unitarios do showcase.
+- **Documentacao:** https://vitest.dev/
 
 ### fast-check
 
 - **Papel:** biblioteca de property-based testing usada nos testes do showcase.
-- **Documentação:** https://fast-check.io/
+- **Documentacao:** https://fast-check.io/
 
 ---
 
 ## Qualidade e CI/CD
 
-| Ferramenta | Propósito |
+| Ferramenta | Proposito |
 |---|---|
-| GitHub Actions | Pipelines de CI/CD (validação de branches, commits, métricas) |
-| commitlint | Validação de commits semânticos (Conventional Commits) |
-| Gitflow | Estratégia de branches (`feature`, `fix`, `docs`, `hotfix`) |
+| GitHub Actions | Pipelines de CI/CD (validacao de branches, commits, metricas) |
+| commitlint | Validacao de commits semanticos (Conventional Commits) |
+| Gitflow | Estrategia de branches (`feature`, `fix`, `docs`, `hotfix`) |

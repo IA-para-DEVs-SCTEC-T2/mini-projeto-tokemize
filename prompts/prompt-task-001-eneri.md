@@ -27,7 +27,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "tokemize"
 version = "0.1.0"
-description = "Agente inteligente de otimização de contexto para LLMs"
+description = "Otimização de contexto para LLMs"
 requires-python = ">=3.11"
 dependencies = [
     "tree-sitter==0.25.2",

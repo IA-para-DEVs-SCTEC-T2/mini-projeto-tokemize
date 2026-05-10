@@ -1,11 +1,13 @@
 # Arquitetura do Tokemize
 
-## Visão Geral
+## Visao Geral
 
-O Tokemize é um **middleware inteligente** que atua entre o usuário e os LLMs (Large Language Models), otimizando o contexto enviado em cada requisição. Em vez de encaminhar o repositório ou o contexto bruto por inteiro, o Tokemize seleciona, resume e comprime apenas o que é relevante para cada consulta — reduzindo custos e aumentando a precisão das respostas.
+O Tokemize é uma ferramenta de **Otimização de Contexto para LLMs**. Ele analisa um repositório local, seleciona os artefatos relevantes para uma tarefa técnica, compacta esse material e gera um prompt Markdown pronto para uso em chatbots de IDE ou outros LLMs.
+
+O projeto nao atua mais como agente e nao executa chamada direta a provedores de LLM. A responsabilidade do Tokemize termina na preparacao do contexto e do prompt.
 
 ```
-Usuário ──► Tokemize ──► Seleção ──► Resumo ──► Otimização ──► LLM
+Usuario ──► Tokemize CLI ──► Analise ──► Selecao ──► Compactacao ──► Prompt otimizado
 ```
 
 ---
@@ -13,96 +15,106 @@ Usuário ──► Tokemize ──► Seleção ──► Resumo ──► Otimi
 ## Fluxo da Arquitetura
 
 ```
-┌─────────┐     entrada      ┌──────────────────────────────────────────┐
-│ Usuário │ ───────────────► │                 Tokemize                 │
-└─────────┘   (query/task)   │                                          │
-                             │  ┌──────────┐   ┌──────────┐            │
-                             │  │  Parser  │──►│ Indexer  │            │
-                             │  └──────────┘   └────┬─────┘            │
-                             │                      │ índice vetorial   │
-                             │                 ┌────▼─────┐            │
-                             │                 │ Selector │            │
-                             │                 └────┬─────┘            │
-                             │                      │ trechos relevantes│
-                             │                 ┌────▼──────┐           │
-                             │                 │ Optimizer │           │
-                             │                 └────┬──────┘           │
-                             └──────────────────────┼───────────────────┘
-                                                    │ contexto otimizado
-                                               ┌────▼────┐
-                                               │   LLM   │
-                                               └─────────┘
+┌─────────┐     tarefa      ┌──────────────────────────────────────────┐
+│ Usuario │ ─────────────► │                 Tokemize                 │
+└─────────┘   + repo_path   │                                          │
+                             │  ┌────────────────────┐                 │
+                             │  │ Repository Analyzer│                 │
+                             │  └─────────┬──────────┘                 │
+                             │            │ artefatos do repositorio    │
+                             │  ┌─────────▼──────────┐                 │
+                             │  │ Intelligent Selector│                 │
+                             │  └─────────┬──────────┘                 │
+                             │            │ artefatos relevantes        │
+                             │  ┌─────────▼──────────┐                 │
+                             │  │     Compressor     │                 │
+                             │  └─────────┬──────────┘                 │
+                             │            │ contexto compacto           │
+                             │  ┌─────────▼──────────┐                 │
+                             │  │   Context Store    │                 │
+                             │  └─────────┬──────────┘                 │
+                             │            │ referencia local            │
+                             │  ┌─────────▼──────────┐                 │
+                             │  │   Prompt Builder   │                 │
+                             │  └─────────┬──────────┘                 │
+                             └────────────┼─────────────────────────────┘
+                                          │ prompt otimizado
+                             ┌────────────▼────────────┐
+                             │ Clipboard / print / file │
+                             └──────────────────────────┘
 ```
 
 ---
 
 ## Componentes
 
-### 1. Parser
+### 1. Repository Analyzer
 
-Responsável por mapear e analisar a estrutura do repositório. Utiliza **Tree-sitter** para realizar análise sintática (AST) do código-fonte, extraindo símbolos, funções, classes e dependências com precisão.
+Responsavel por mapear e analisar a estrutura do repositorio, extraindo metadados e artefatos relevantes dos arquivos.
 
-- **Entrada:** arquivos do repositório
-- **Saída:** representação estruturada do código (AST + metadados)
-- **Status:** ✅ Concluído
+- **Entrada:** caminho do repositorio
+- **Saida:** analises de arquivos e artefatos estruturados
+- **Status:** Concluido
 
-### 2. Indexer
+### 2. Intelligent Selector
 
-Transforma os dados estruturados gerados pelo Parser em **vetores de embeddings** e os armazena em um índice **FAISS**, viabilizando buscas semânticas eficientes.
+Recebe a descricao da tarefa e seleciona os artefatos mais relevantes entre os itens analisados.
 
-- **Entrada:** representação estruturada do Parser
-- **Saída:** índice vetorial do repositório
-- **Status:** 🔲 Planejado
+- **Entrada:** analises do repositorio + descricao da tarefa
+- **Saida:** artefatos relevantes para a tarefa
+- **Status:** Concluido
 
-### 3. Selector
+### 3. Compressor
 
-Recebe a query do usuário e realiza uma **busca semântica** no índice vetorial para recuperar apenas os trechos de código mais relevantes para aquela consulta.
+Compacta os artefatos selecionados em um contexto menor e mais facil de usar dentro de limites de tokens.
 
-- **Entrada:** query do usuário + índice vetorial do Indexer
-- **Saída:** conjunto de trechos de código relevantes
-- **Status:** 🔄 Em desenvolvimento
+- **Entrada:** artefatos relevantes
+- **Saida:** contexto compacto
+- **Status:** Concluido
 
-### 4. Optimizer
+### 4. Context Store
 
-Comprime e resume os trechos selecionados, aplicando redução semântica inteligente para maximizar a informação útil dentro do limite de tokens do LLM.
+Persiste o contexto compacto em `.tokemize/context/` quando possivel. Essa etapa e nao fatal: se a gravacao falhar, o prompt ainda pode ser gerado.
 
-- **Entrada:** trechos relevantes do Selector
-- **Saída:** contexto otimizado e comprimido
-- **Status:** 🔲 Planejado
+- **Entrada:** contexto compacto + descricao da tarefa + caminho do repositorio
+- **Saida:** caminho do arquivo de contexto salvo
+- **Status:** Concluido
 
-### 5. LLM Integration
+### 5. Prompt Builder
 
-Módulo de integração com os provedores de LLM (OpenAI, Anthropic, Groq). Encaminha o contexto otimizado e retorna a resposta ao usuário.
+Monta o prompt Markdown final com a tarefa, o contexto compacto e a referencia ao arquivo de contexto salvo.
 
-- **Entrada:** contexto otimizado do Optimizer + query original
-- **Saída:** resposta do LLM
-- **Status:** 🔲 Planejado
+- **Entrada:** contexto compacto + descricao da tarefa + caminho opcional do contexto
+- **Saida:** prompt otimizado
+- **Status:** Concluido
 
-### 6. Embeddings
+### 6. Clipboard / Output
 
-Módulo auxiliar que gera os embeddings utilizados pelo Indexer e pelo Selector, suportando múltiplos provedores de embeddings.
+Copia o prompt para a area de transferencia e, opcionalmente, imprime no terminal ou salva em arquivo.
 
-- **Status:** 🔲 Planejado
-
----
-
-## Cache de Contexto
-
-Para consultas repetitivas ou similares, o Tokemize implementará um **cache de contexto** que reutiliza índices e seleções já computadas, reduzindo latência e custos de processamento.
+- **Entrada:** prompt otimizado
+- **Saida:** prompt disponivel para uso externo
+- **Status:** Concluido
 
 ---
 
-## Estrutura de Diretórios
+## Cache e Reuso de Contexto
+
+O armazenamento local do contexto compacto permite auditoria, reuso e comparacao entre execucoes. Evolucoes futuras podem ampliar esse mecanismo para evitar recomputacao em tarefas repetitivas ou similares.
+
+---
+
+## Estrutura de Diretorios
 
 ```
 mini-projeto-tokemize/
 ├── src/
-│   └── tokemize/          # Código-fonte principal (Python)
+│   └── tokemize/          # Codigo-fonte principal (Python)
 ├── tests/                 # Testes automatizados
 ├── docs/
 │   ├── architecture.md    # Este arquivo
-│   ├── technologies.md    # Stack e decisões técnicas
-│   ├── roadmap.md         # Progresso e próximos passos
-│   └── showcase/          # GitHub Pages — dashboard do projeto
-└── pyproject.toml         # Configuração do projeto Python
+│   ├── technologies.md    # Stack e decisoes tecnicas
+│   ├── roadmap.md         # Progresso e proximos passos
+│   └── showcase/          # GitHub Pages - dashboard do projeto
+└── pyproject.toml         # Configuracao do projeto Python
 ```
