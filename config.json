@@ -99,23 +99,23 @@
   "boardMetrics": {
     "projectTitle": "Mini Projeto Tokemize - Time 4",
     "projectNumber": 5,
-    "totalCards": 27,
+    "totalCards": 28,
     "cardsByStatus": {
-      "Done": 22,
+      "Done": 24,
       "Todo": 2,
-      "Revision": 2,
+      "Revision": 1,
       "In Progress": 1
     },
-    "lastUpdatedAt": "2026-05-10T19:05:18.724512+00:00"
+    "lastUpdatedAt": "2026-05-11T03:34:21.141689+00:00"
   },
   "repoStats": {
-    "totalCommits": 128,
+    "totalCommits": 129,
     "openPRs": 0,
-    "closedPRs": 44,
+    "closedPRs": 47,
     "contributors": 7,
-    "activeBranches": 4,
-    "lastCommitAt": "2026-05-10T13:19:20Z",
-    "fetchedAt": "2026-05-10T19:05:18.724614+00:00"
+    "activeBranches": 3,
+    "lastCommitAt": "2026-05-10T19:05:18Z",
+    "fetchedAt": "2026-05-11T03:34:21.141782+00:00"
   },
   "contributors": [
     {
@@ -126,7 +126,7 @@
     },
     {
       "avatar_url": "https://avatars.githubusercontent.com/in/15368?v=4",
-      "contributions": 41,
+      "contributions": 42,
       "html_url": "https://github.com/apps/github-actions",
       "login": "github-actions[bot]"
     },
@@ -164,9 +164,9 @@
   "prAuthors": [
     {
       "login": "jrcosta",
-      "total": 24,
+      "total": 26,
       "open": 0,
-      "closed": 24,
+      "closed": 26,
       "avatar_url": "https://avatars.githubusercontent.com/u/22981568?v=4",
       "html_url": "https://github.com/jrcosta"
     },
@@ -189,8 +189,8 @@
     {
       "login": "PauloSergioLR",
       "total": 4,
-      "open": 1,
-      "closed": 3,
+      "open": 0,
+      "closed": 4,
       "avatar_url": "https://avatars.githubusercontent.com/u/85140484?v=4",
       "html_url": "https://github.com/PauloSergioLR"
     },
