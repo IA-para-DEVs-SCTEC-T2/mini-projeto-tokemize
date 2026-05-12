@@ -305,6 +305,21 @@ class CompressedContext:
 
 
 @dataclass
+class OptimizedPrompt:
+    """Prompt otimizado gerado pelo Prompt_Builder.
+
+    Attributes:
+        content: Conteúdo Markdown do prompt otimizado.
+        task_description: Descrição da tarefa original.
+        token_estimate: Estimativa do número de tokens no conteúdo.
+    """
+
+    content: str
+    task_description: str
+    token_estimate: int
+
+
+@dataclass
 class SavedContext:
     """Contexto comprimido persistido em disco pelo Context_Saver.
 

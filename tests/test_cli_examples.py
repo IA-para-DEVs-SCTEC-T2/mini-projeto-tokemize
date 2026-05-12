@@ -3,41 +3,41 @@
 Verifica comportamentos determinísticos e específicos:
   - Invocação sem argumentos → ajuda + Exit_Code 0
   - Invocação com --help → ajuda + Exit_Code 0
-  - Mensagens de progresso [1/6] a [6/6] na ordem correta
+  - Mensagens de progresso [1/6] a [5/6] na ordem correta
   - Ordem de chamada dos módulos do pipeline com argumentos corretos
+  - Flags --print, --output e ClipboardError
 
-Nota sobre invocação com Typer 0.25+:
-  Quando o app tem apenas um comando registrado, o CliRunner invoca
-  diretamente sem prefixar o nome do subcomando.
-  Ex: runner.invoke(app, [repo_path, task]) — sem "analyze".
+Novo pipeline (sem LLM):
+  repository_analyzer → intelligent_selector → compressor →
+  context_store → prompt_builder → clipboard
 """
 
-from unittest.mock import MagicMock, call, patch
+import tempfile
+import shutil
+from pathlib import Path
+from unittest.mock import MagicMock, patch
 
 import pytest
 from typer.testing import CliRunner
 
-from cli import app
+from tokemize.cli import app
 
 runner = CliRunner()
 
-# Diretório válido para testes que precisam passar pela validação de repo_path
 _VALID_REPO = "."
 _VALID_TASK = "implementar autenticação de usuários"
+_PROMPT_CONTENT = (
+    "# Prompt otimizado pelo Tokemize\n\n"
+    "## Tarefa\n\n"
+    "implementar autenticação de usuários\n"
+)
 
 
-def _make_pipeline_mocks():
-    """Cria mocks para todos os módulos do pipeline."""
-    from tokemize.models import (
-        CachedContext,
-        CompressedContext,
-        RepositoryStructure,
-        SavedContext,
-        SelectedContext,
-    )
+def _make_pipeline_mocks(prompt_content: str = _PROMPT_CONTENT) -> dict:
+    from tokemize.models import CompressedContext, OptimizedPrompt
 
-    mock_analyze = MagicMock(return_value=RepositoryStructure(root_path=_VALID_REPO))
-    mock_select = MagicMock(return_value=SelectedContext(task_description=_VALID_TASK))
+    mock_analyze = MagicMock(return_value=[])
+    mock_select = MagicMock(return_value=[])
     mock_compress = MagicMock(
         return_value=CompressedContext(
             task_description=_VALID_TASK,
@@ -45,143 +45,152 @@ def _make_pipeline_mocks():
             token_count=10,
         )
     )
-    mock_save = MagicMock(
-        return_value=SavedContext(
+    mock_save_context = MagicMock(
+        return_value=".tokemize/context/implementar-autenticacao-de-usuarios-20250101.md"
+    )
+    mock_build = MagicMock(
+        return_value=OptimizedPrompt(
+            content=prompt_content,
             task_description=_VALID_TASK,
-            compressed_content="resumo",
-            token_count=10,
-            context_file_path="outputs/context_pack.md",
+            token_estimate=20,
         )
     )
-    mock_cache = MagicMock(
-        return_value=CachedContext(
-            task_description=_VALID_TASK,
-            content="resposta do LLM",
-            cache_hit=False,
-            token_count=10,
-            context_file_path="outputs/context_pack.md",
-        )
-    )
-    mock_dispatch = MagicMock(return_value="resposta do LLM")
+    mock_clipboard = MagicMock(return_value=None)
 
-    return mock_analyze, mock_select, mock_compress, mock_save, mock_cache, mock_dispatch
+    return {
+        "analyze": mock_analyze,
+        "select": mock_select,
+        "compress": mock_compress,
+        "save_context": mock_save_context,
+        "build": mock_build,
+        "clipboard": mock_clipboard,
+    }
+
+
+def _invoke_with_mocked_pipeline(args: list, prompt_content: str = _PROMPT_CONTENT):
+    mocks = _make_pipeline_mocks(prompt_content)
+    with (
+        patch("tokemize.cli.analyze_repository", mocks["analyze"]),
+        patch("tokemize.cli.select_relevant_artifacts", mocks["select"]),
+        patch("tokemize.cli.compress_context", mocks["compress"]),
+        patch("tokemize.cli.save_context", mocks["save_context"]),
+        patch("tokemize.cli.build_prompt", mocks["build"]),
+        patch("tokemize.cli.copy_to_clipboard", mocks["clipboard"]),
+    ):
+        return runner.invoke(app, args), mocks
 
 
 # ---------------------------------------------------------------------------
-# Task 8.2: --help e invocação sem argumentos
-# Requirements: 1.4, 1.5
+# Help e invocação sem argumentos
 # ---------------------------------------------------------------------------
 
-def test_analyze_without_args_shows_help():
-    """Invocar analyze sem argumentos deve exibir informações de uso.
-    
-    Nota: O Typer/Click retorna exit_code 2 quando argumentos obrigatórios
-    estão faltando, exibindo a mensagem de uso. Este é o comportamento padrão
-    do Click para erros de parsing de argumentos.
-    """
-    result = runner.invoke(app, [])
-    # Deve exibir informações de uso (Usage ou help)
-    assert "REPO_PATH" in result.output or "Usage" in result.output
-    assert "TASK_DESCRIPTION" in result.output or "help" in result.output.lower()
+def test_toke_with_help_flag_exits_0():
+    result = runner.invoke(app, ["toke", "--help"])
+    assert result.exit_code == 0
+    assert "TASK_DESCRIPTION" in result.output or "task" in result.output.lower()
 
 
-def test_analyze_with_help_flag_shows_descriptions():
-    """Invocar analyze --help deve exibir descrições dos argumentos e Exit_Code 0."""
+def test_app_with_help_flag_exits_0():
     result = runner.invoke(app, ["--help"])
     assert result.exit_code == 0
-    assert "REPO_PATH" in result.output
-    assert "TASK_DESCRIPTION" in result.output
+
+
+def test_toke_without_args_shows_error():
+    result = runner.invoke(app, ["toke"])
+    assert result.exit_code != 0
 
 
 # ---------------------------------------------------------------------------
-# Task 7.3: Mensagens de progresso [1/6] a [6/6]
-# Requirements: 5.1, 5.2, 5.3, 5.4, 5.5, 5.6
+# Validação de repo_path
+# ---------------------------------------------------------------------------
+
+def test_nonexistent_repo_path_exits_1():
+    result = runner.invoke(app, ["toke", "--repo", "/caminho/que/nao/existe/xyz123", _VALID_TASK])
+    assert result.exit_code == 1
+    assert "não existe" in result.output
+
+
+def test_file_as_repo_path_exits_1():
+    tmp_dir = tempfile.mkdtemp()
+    try:
+        file_path = Path(tmp_dir) / "arquivo.txt"
+        file_path.write_text("conteúdo")
+        result = runner.invoke(app, ["toke", "--repo", str(file_path), _VALID_TASK])
+        assert result.exit_code == 1
+        assert "não é um diretório válido" in result.output
+    finally:
+        shutil.rmtree(tmp_dir, ignore_errors=True)
+
+
+# ---------------------------------------------------------------------------
+# Validação de task_description
+# ---------------------------------------------------------------------------
+
+def test_empty_task_description_exits_1():
+    result = runner.invoke(app, ["toke", "--repo", ".", ""])
+    assert result.exit_code == 1
+    assert "não pode ser vazia" in result.output
+
+
+def test_whitespace_only_task_description_exits_1():
+    result = runner.invoke(app, ["toke", "--repo", ".", " "])
+    assert result.exit_code == 1
+    assert "não pode ser vazia" in result.output
+
+
+def test_short_task_description_exits_1():
+    result = runner.invoke(app, ["toke", "--repo", ".", "ab"])
+    assert result.exit_code == 1
+    assert "pelo menos 3 caracteres" in result.output
+
+
+# ---------------------------------------------------------------------------
+# Mensagens de progresso [1/6] a [5/6]
 # ---------------------------------------------------------------------------
 
 def test_progress_messages_appear_in_output():
-    """Todas as mensagens de progresso [1/6] a [6/6] devem aparecer na saída."""
-    mock_analyze, mock_select, mock_compress, mock_save, mock_cache, mock_dispatch = _make_pipeline_mocks()
-
-    with (
-        patch("cli.analyze_repository", mock_analyze),
-        patch("cli.select_relevant_files", mock_select),
-        patch("cli.compress_context", mock_compress),
-        patch("cli.save_context", mock_save),
-        patch("cli.get_or_update_cache", mock_cache),
-        patch("cli.dispatch", mock_dispatch),
-    ):
-        result = runner.invoke(app, [_VALID_REPO, _VALID_TASK])
-
+    result, _ = _invoke_with_mocked_pipeline(["toke", _VALID_TASK])
     assert result.exit_code == 0
-    for i in range(1, 7):
+    for i in range(1, 6):
         assert f"[{i}/6]" in result.output, f"Mensagem [{i}/6] não encontrada na saída"
 
 
 def test_progress_messages_appear_in_correct_order():
-    """As mensagens de progresso devem aparecer na ordem [1/6], [2/6], ..., [6/6]."""
-    mock_analyze, mock_select, mock_compress, mock_save, mock_cache, mock_dispatch = _make_pipeline_mocks()
-
-    with (
-        patch("cli.analyze_repository", mock_analyze),
-        patch("cli.select_relevant_files", mock_select),
-        patch("cli.compress_context", mock_compress),
-        patch("cli.save_context", mock_save),
-        patch("cli.get_or_update_cache", mock_cache),
-        patch("cli.dispatch", mock_dispatch),
-    ):
-        result = runner.invoke(app, [_VALID_REPO, _VALID_TASK])
-
+    result, _ = _invoke_with_mocked_pipeline(["toke", _VALID_TASK])
     output = result.output
-    positions = [output.find(f"[{i}/6]") for i in range(1, 7)]
-    # Todos devem estar presentes
+    positions = [output.find(f"[{i}/6]") for i in range(1, 6)]
     assert all(pos >= 0 for pos in positions), f"Posições: {positions}"
-    # Devem estar em ordem crescente
-    assert positions == sorted(positions), (
-        f"Mensagens fora de ordem. Posições: {positions}"
-    )
+    assert positions == sorted(positions), f"Mensagens fora de ordem. Posições: {positions}"
 
 
 def test_progress_message_1_before_repository_analyzer():
-    """[1/6] deve aparecer antes de Repository_Analyzer ser chamado."""
     call_order = []
 
     def tracking_analyze(repo_path):
         call_order.append("analyze_repository")
-        from tokemize.models import RepositoryStructure
-        return RepositoryStructure(root_path=repo_path)
+        return []
 
-    mock_select, mock_compress, mock_save, mock_cache, mock_dispatch = (
-        MagicMock(), MagicMock(), MagicMock(), MagicMock(), MagicMock()
-    )
-    from tokemize.models import CachedContext, CompressedContext, SavedContext, SelectedContext
-    mock_select.return_value = SelectedContext(task_description=_VALID_TASK)
-    mock_compress.return_value = CompressedContext(
-        task_description=_VALID_TASK, compressed_content="", token_count=0
-    )
-    mock_save.return_value = SavedContext(
-        task_description=_VALID_TASK,
-        compressed_content="",
-        token_count=0,
-        context_file_path="outputs/context_pack.md",
-    )
-    mock_cache.return_value = CachedContext(
-        task_description=_VALID_TASK,
-        content="ok",
-        cache_hit=False,
-        token_count=0,
-        context_file_path="outputs/context_pack.md",
-    )
-    mock_dispatch.return_value = "ok"
+    from tokemize.models import CompressedContext, OptimizedPrompt
 
     with (
-        patch("cli.analyze_repository", side_effect=tracking_analyze),
-        patch("cli.select_relevant_files", mock_select),
-        patch("cli.compress_context", mock_compress),
-        patch("cli.save_context", mock_save),
-        patch("cli.get_or_update_cache", mock_cache),
-        patch("cli.dispatch", mock_dispatch),
+        patch("tokemize.cli.analyze_repository", side_effect=tracking_analyze),
+        patch("tokemize.cli.select_relevant_artifacts", return_value=[]),
+        patch(
+            "tokemize.cli.compress_context",
+            return_value=CompressedContext(
+                task_description=_VALID_TASK, compressed_content="", token_count=0
+            ),
+        ),
+        patch("tokemize.cli.save_context", return_value=None),
+        patch(
+            "tokemize.cli.build_prompt",
+            return_value=OptimizedPrompt(
+                content=_PROMPT_CONTENT, task_description=_VALID_TASK, token_estimate=0
+            ),
+        ),
+        patch("tokemize.cli.copy_to_clipboard", return_value=None),
     ):
-        result = runner.invoke(app, [_VALID_REPO, _VALID_TASK])
+        result = runner.invoke(app, ["toke", _VALID_TASK])
 
     assert result.exit_code == 0
     assert "[1/6]" in result.output
@@ -189,130 +198,247 @@ def test_progress_message_1_before_repository_analyzer():
 
 
 # ---------------------------------------------------------------------------
-# Task 6.4: Ordem do pipeline e argumentos corretos
-# Requirements: 4.1, 4.2, 4.3, 4.4, 4.5
+# Ordem do pipeline e argumentos corretos
 # ---------------------------------------------------------------------------
 
 def test_pipeline_called_in_correct_order():
-    """Os módulos do pipeline devem ser chamados na ordem correta."""
     call_order = []
 
-    from tokemize.models import (
-        CachedContext,
-        CompressedContext,
-        RepositoryStructure,
-        SavedContext,
-        SelectedContext,
-    )
+    from tokemize.models import CompressedContext, OptimizedPrompt
 
-    structure = RepositoryStructure(root_path=_VALID_REPO)
-    selected = SelectedContext(task_description=_VALID_TASK)
     compressed = CompressedContext(
         task_description=_VALID_TASK, compressed_content="resumo", token_count=5
     )
-    saved = SavedContext(
-        task_description=_VALID_TASK,
-        compressed_content="resumo",
-        token_count=5,
-        context_file_path="outputs/context_pack.md",
-    )
-    cached = CachedContext(
-        task_description=_VALID_TASK,
-        content="resposta",
-        cache_hit=False,
-        token_count=5,
-        context_file_path="outputs/context_pack.md",
+    prompt = OptimizedPrompt(
+        content=_PROMPT_CONTENT, task_description=_VALID_TASK, token_estimate=20
     )
 
     def track(name, return_value):
         def fn(*args, **kwargs):
             call_order.append(name)
             return return_value
+
         return fn
 
     with (
-        patch("cli.analyze_repository", side_effect=track("analyze_repository", structure)),
-        patch("cli.select_relevant_files", side_effect=track("select_relevant_files", selected)),
-        patch("cli.compress_context", side_effect=track("compress_context", compressed)),
-        patch("cli.save_context", side_effect=track("save_context", saved)),
-        patch("cli.get_or_update_cache", side_effect=track("get_or_update_cache", cached)),
-        patch("cli.dispatch", side_effect=track("dispatch", "resposta")),
+        patch("tokemize.cli.analyze_repository", side_effect=track("analyze_repository", [])),
+        patch(
+            "tokemize.cli.select_relevant_artifacts",
+            side_effect=track("select_relevant_artifacts", []),
+        ),
+        patch(
+            "tokemize.cli.compress_context",
+            side_effect=track("compress_context", compressed),
+        ),
+        patch("tokemize.cli.save_context", side_effect=track("save_context", None)),
+        patch("tokemize.cli.build_prompt", side_effect=track("build_prompt", prompt)),
+        patch(
+            "tokemize.cli.copy_to_clipboard",
+            side_effect=track("copy_to_clipboard", None),
+        ),
     ):
-        result = runner.invoke(app, [_VALID_REPO, _VALID_TASK])
+        result = runner.invoke(app, ["toke", _VALID_TASK])
 
     assert result.exit_code == 0
     assert call_order == [
         "analyze_repository",
-        "select_relevant_files",
+        "select_relevant_artifacts",
         "compress_context",
         "save_context",
-        "get_or_update_cache",
-        "dispatch",
+        "build_prompt",
+        "copy_to_clipboard",
     ], f"Ordem incorreta: {call_order}"
 
 
 def test_pipeline_called_with_correct_arguments():
-    """Cada módulo do pipeline deve receber os argumentos corretos."""
-    from tokemize.models import (
-        CachedContext,
-        CompressedContext,
-        RepositoryStructure,
-        SavedContext,
-        SelectedContext,
-    )
+    from tokemize.models import CompressedContext, OptimizedPrompt
 
-    structure = RepositoryStructure(root_path=_VALID_REPO)
-    selected = SelectedContext(task_description=_VALID_TASK)
+    file_analyses = []
+    artifacts = []
     compressed = CompressedContext(
         task_description=_VALID_TASK, compressed_content="resumo", token_count=5
     )
-    saved = SavedContext(
-        task_description=_VALID_TASK,
-        compressed_content="resumo",
-        token_count=5,
-        context_file_path="outputs/context_pack.md",
+    prompt = OptimizedPrompt(
+        content=_PROMPT_CONTENT, task_description=_VALID_TASK, token_estimate=20
     )
-    cached = CachedContext(
-        task_description=_VALID_TASK,
-        content="resposta",
-        cache_hit=False,
-        token_count=5,
-        context_file_path="outputs/context_pack.md",
-    )
+    context_file_path = ".tokemize/context/implementar-autenticacao-20250101.md"
 
-    mock_analyze = MagicMock(return_value=structure)
-    mock_select = MagicMock(return_value=selected)
+    mock_analyze = MagicMock(return_value=file_analyses)
+    mock_select = MagicMock(return_value=artifacts)
     mock_compress = MagicMock(return_value=compressed)
-    mock_save = MagicMock(return_value=saved)
-    mock_cache = MagicMock(return_value=cached)
-    mock_dispatch = MagicMock(return_value="resposta")
+    mock_save_context = MagicMock(return_value=context_file_path)
+    mock_build = MagicMock(return_value=prompt)
+    mock_clipboard = MagicMock(return_value=None)
 
     with (
-        patch("cli.analyze_repository", mock_analyze),
-        patch("cli.select_relevant_files", mock_select),
-        patch("cli.compress_context", mock_compress),
-        patch("cli.save_context", mock_save),
-        patch("cli.get_or_update_cache", mock_cache),
-        patch("cli.dispatch", mock_dispatch),
+        patch("tokemize.cli.analyze_repository", mock_analyze),
+        patch("tokemize.cli.select_relevant_artifacts", mock_select),
+        patch("tokemize.cli.compress_context", mock_compress),
+        patch("tokemize.cli.save_context", mock_save_context),
+        patch("tokemize.cli.build_prompt", mock_build),
+        patch("tokemize.cli.copy_to_clipboard", mock_clipboard),
     ):
-        result = runner.invoke(app, [_VALID_REPO, _VALID_TASK])
+        result = runner.invoke(app, ["toke", "--repo", _VALID_REPO, _VALID_TASK])
 
     assert result.exit_code == 0
 
-    # Req 4.1: Repository_Analyzer recebe repo_path
     mock_analyze.assert_called_once_with(_VALID_REPO)
+    mock_select.assert_called_once_with(file_analyses, _VALID_TASK)
+    mock_compress.assert_called_once_with(artifacts)
+    mock_save_context.assert_called_once_with(
+        compressed.compressed_content, _VALID_TASK, _VALID_REPO
+    )
+    mock_build.assert_called_once_with(compressed, _VALID_TASK, context_file_path)
+    mock_clipboard.assert_called_once_with(prompt.content)
 
-    # Req 4.2: Intelligent_Selector recebe resultado do Repository_Analyzer + task_description
-    mock_select.assert_called_once_with(structure, _VALID_TASK)
 
-    # Req 4.3: Compressor recebe resultado do Intelligent_Selector
-    mock_compress.assert_called_once_with(selected)
+# ---------------------------------------------------------------------------
+# Flags --print e --output
+# ---------------------------------------------------------------------------
 
-    # Req 4.4: Context_Saver recebe resultado do Compressor
-    mock_save.assert_called_once_with(compressed)
+def test_print_flag_displays_prompt_in_stdout():
+    result, _ = _invoke_with_mocked_pipeline(["toke", "--print", _VALID_TASK])
+    assert result.exit_code == 0
+    assert _PROMPT_CONTENT in result.output
 
-    # Req 4.5: Context_Cache recebe resultado do Context_Saver + task_description
-    mock_cache.assert_called_once_with(saved, _VALID_TASK)
 
-    # Req 4.6: LLM_Dispatcher recebe resultado do Context_Cache
-    mock_dispatch.assert_called_once_with(cached)
+def test_output_flag_saves_file():
+    tmp_dir = tempfile.mkdtemp()
+    try:
+        output_file = str(Path(tmp_dir) / "prompt.md")
+        result, _ = _invoke_with_mocked_pipeline(
+            ["toke", "--output", output_file, _VALID_TASK]
+        )
+        assert result.exit_code == 0
+        assert Path(output_file).exists()
+        assert Path(output_file).read_text(encoding="utf-8") == _PROMPT_CONTENT
+        assert f"Prompt salvo em: {output_file}" in result.output
+    finally:
+        shutil.rmtree(tmp_dir, ignore_errors=True)
+
+
+def test_output_flag_creates_parent_dirs():
+    tmp_dir = tempfile.mkdtemp()
+    try:
+        output_file = str(Path(tmp_dir) / "subdir" / "nested" / "prompt.md")
+        result, _ = _invoke_with_mocked_pipeline(
+            ["toke", "--output", output_file, _VALID_TASK]
+        )
+        assert result.exit_code == 0
+        assert Path(output_file).exists()
+    finally:
+        shutil.rmtree(tmp_dir, ignore_errors=True)
+
+
+def test_print_and_output_flags_together():
+    tmp_dir = tempfile.mkdtemp()
+    try:
+        output_file = str(Path(tmp_dir) / "prompt.md")
+        result, _ = _invoke_with_mocked_pipeline(
+            ["toke", "--print", "--output", output_file, _VALID_TASK]
+        )
+        assert result.exit_code == 0
+        assert _PROMPT_CONTENT in result.output
+        assert Path(output_file).exists()
+    finally:
+        shutil.rmtree(tmp_dir, ignore_errors=True)
+
+
+# ---------------------------------------------------------------------------
+# ClipboardError
+# ---------------------------------------------------------------------------
+
+def test_clipboard_error_results_in_exit_0_with_warning():
+    from tokemize.models import CompressedContext, OptimizedPrompt
+    from tokemize.integrations.clipboard import ClipboardError
+
+    compressed = CompressedContext(
+        task_description=_VALID_TASK, compressed_content="resumo", token_count=5
+    )
+    prompt = OptimizedPrompt(
+        content=_PROMPT_CONTENT, task_description=_VALID_TASK, token_estimate=20
+    )
+
+    with (
+        patch("tokemize.cli.analyze_repository", return_value=[]),
+        patch("tokemize.cli.select_relevant_artifacts", return_value=[]),
+        patch("tokemize.cli.compress_context", return_value=compressed),
+        patch("tokemize.cli.save_context", return_value=None),
+        patch("tokemize.cli.build_prompt", return_value=prompt),
+        patch(
+            "tokemize.cli.copy_to_clipboard",
+            side_effect=ClipboardError("sem display"),
+        ),
+    ):
+        result = runner.invoke(app, ["toke", _VALID_TASK])
+
+    assert result.exit_code == 0
+    assert "⚠️" in result.output
+    assert "não foi possível copiar" in result.output
+
+
+# ---------------------------------------------------------------------------
+# Comando prepare
+# ---------------------------------------------------------------------------
+
+def test_prepare_command_executes_same_pipeline():
+    from tokemize.models import CompressedContext, OptimizedPrompt
+
+    compressed = CompressedContext(
+        task_description=_VALID_TASK, compressed_content="resumo", token_count=5
+    )
+    prompt = OptimizedPrompt(
+        content=_PROMPT_CONTENT, task_description=_VALID_TASK, token_estimate=20
+    )
+
+    mock_analyze = MagicMock(return_value=[])
+    mock_select = MagicMock(return_value=[])
+    mock_compress = MagicMock(return_value=compressed)
+    mock_save_context = MagicMock(return_value=None)
+    mock_build = MagicMock(return_value=prompt)
+    mock_clipboard = MagicMock(return_value=None)
+
+    with (
+        patch("tokemize.cli.analyze_repository", mock_analyze),
+        patch("tokemize.cli.select_relevant_artifacts", mock_select),
+        patch("tokemize.cli.compress_context", mock_compress),
+        patch("tokemize.cli.save_context", mock_save_context),
+        patch("tokemize.cli.build_prompt", mock_build),
+        patch("tokemize.cli.copy_to_clipboard", mock_clipboard),
+    ):
+        result = runner.invoke(app, ["prepare", ".", _VALID_TASK])
+
+    assert result.exit_code == 0
+    mock_analyze.assert_called_once_with(".")
+    mock_select.assert_called_once_with([], _VALID_TASK)
+    for i in range(1, 6):
+        assert f"[{i}/6]" in result.output
+
+
+# ---------------------------------------------------------------------------
+# Tratamento de exceção no pipeline
+# ---------------------------------------------------------------------------
+
+def test_pipeline_exception_exits_with_code_2():
+    with (
+        patch(
+            "tokemize.cli.analyze_repository",
+            side_effect=Exception("falha no analyzer"),
+        ),
+        patch("tokemize.cli.save_context", return_value=None),
+    ):
+        result = runner.invoke(app, ["toke", _VALID_TASK])
+
+    assert result.exit_code == 2
+    assert "Repository_Analyzer" in result.output
+    assert "falha no analyzer" in result.output
+
+
+# ---------------------------------------------------------------------------
+# Mensagem de sucesso após clipboard
+# ---------------------------------------------------------------------------
+
+def test_success_message_displayed_after_clipboard():
+    result, _ = _invoke_with_mocked_pipeline(["toke", _VALID_TASK])
+    assert result.exit_code == 0
+    assert "✅" in result.output
