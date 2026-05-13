@@ -100,35 +100,36 @@
   "boardMetrics": {
     "projectTitle": "Mini Projeto Tokemize - Time 4",
     "projectNumber": 5,
-    "totalCards": 22,
+    "totalCards": 28,
     "cardsByStatus": {
-      "Done": 14,
-      "In Progress": 1,
-      "Todo": 7
+      "Done": 24,
+      "Todo": 2,
+      "Revision": 1,
+      "In Progress": 1
     },
-    "lastUpdatedAt": "2026-05-04T21:38:27.351234+00:00"
+    "lastUpdatedAt": "2026-05-12T19:53:22.409969+00:00"
   },
   "repoStats": {
-    "totalCommits": 105,
+    "totalCommits": 136,
     "openPRs": 0,
-    "closedPRs": 38,
+    "closedPRs": 47,
     "contributors": 7,
-    "activeBranches": 15,
-    "lastCommitAt": "2026-05-04T21:37:33Z",
-    "fetchedAt": "2026-05-04T21:38:27.351339+00:00"
+    "activeBranches": 3,
+    "lastCommitAt": "2026-05-12T14:26:32Z",
+    "fetchedAt": "2026-05-12T19:53:22.410078+00:00"
   },
   "contributors": [
     {
-      "avatar_url": "https://avatars.githubusercontent.com/u/22981568?v=4",
-      "contributions": 42,
-      "html_url": "https://github.com/jrcosta",
-      "login": "jrcosta"
-    },
-    {
       "avatar_url": "https://avatars.githubusercontent.com/in/15368?v=4",
-      "contributions": 18,
+      "contributions": 49,
       "html_url": "https://github.com/apps/github-actions",
       "login": "github-actions[bot]"
+    },
+    {
+      "avatar_url": "https://avatars.githubusercontent.com/u/22981568?v=4",
+      "contributions": 47,
+      "html_url": "https://github.com/jrcosta",
+      "login": "jrcosta"
     },
     {
       "avatar_url": "https://avatars.githubusercontent.com/u/237599657?v=4",
@@ -138,7 +139,7 @@
     },
     {
       "avatar_url": "https://avatars.githubusercontent.com/u/14351143?v=4",
-      "contributions": 11,
+      "contributions": 12,
       "html_url": "https://github.com/gvmertens",
       "login": "gvmertens"
     },
@@ -164,43 +165,43 @@
   "prAuthors": [
     {
       "login": "jrcosta",
-      "total": 22,
+      "total": 26,
       "open": 0,
-      "closed": 22,
+      "closed": 26,
       "avatar_url": "https://avatars.githubusercontent.com/u/22981568?v=4",
       "html_url": "https://github.com/jrcosta"
     },
     {
       "login": "samuelmarquesgit",
-      "total": 6,
+      "total": 7,
       "open": 0,
-      "closed": 6,
+      "closed": 7,
       "avatar_url": "https://avatars.githubusercontent.com/u/237599657?v=4",
       "html_url": "https://github.com/samuelmarquesgit"
     },
     {
-      "login": "edunotari",
-      "total": 4,
-      "open": 1,
-      "closed": 3,
-      "avatar_url": "https://avatars.githubusercontent.com/u/65471872?v=4",
-      "html_url": "https://github.com/edunotari"
-    },
-    {
       "login": "gvmertens",
-      "total": 4,
+      "total": 5,
       "open": 0,
-      "closed": 4,
+      "closed": 5,
       "avatar_url": "https://avatars.githubusercontent.com/u/14351143?v=4",
       "html_url": "https://github.com/gvmertens"
     },
     {
       "login": "PauloSergioLR",
-      "total": 2,
+      "total": 4,
       "open": 0,
-      "closed": 2,
+      "closed": 4,
       "avatar_url": "https://avatars.githubusercontent.com/u/85140484?v=4",
       "html_url": "https://github.com/PauloSergioLR"
+    },
+    {
+      "login": "edunotari",
+      "total": 4,
+      "open": 0,
+      "closed": 4,
+      "avatar_url": "https://avatars.githubusercontent.com/u/65471872?v=4",
+      "html_url": "https://github.com/edunotari"
     },
     {
       "login": "Copilot",

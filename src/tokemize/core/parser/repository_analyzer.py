@@ -1,5 +1,6 @@
 """Análise de repositório do pipeline Tokemize.
 
+<<<<<<< HEAD
 Orquestra o RepositoryScanner e o TreeSitterAnalyzer para varrer um
 repositório local e extrair artefatos sintáticos de cada arquivo de
 código-fonte suportado.
@@ -29,6 +30,30 @@ def analyze_repository(repo_path: str) -> RepositoryStructure:
     Arquivos com linguagem não suportada pelo Tree-sitter recebem
     ``language="unknown"`` e ``artifacts=[]`` — nenhuma exceção é propagada
     para arquivos individuais.
+=======
+from __future__ import annotations
+
+from tokemize.models import RepositoryStructure
+
+
+def analyze_repository(repo_path: str) -> list:
+    """Analisa a estrutura de um repositório local.
+>>>>>>> 135f5f4 (feat(task005): teste task005)
+
+    Percorre o repositório e retorna uma lista de análises de arquivo
+    com metadados e artefatos extraídos.
+
+    Args:
+        repo_path: Caminho absoluto ou relativo para a raiz do repositório.
+
+    Returns:
+        Lista de análises de arquivo (stub — retorna lista vazia).
+    """
+    return []
+
+
+def analyze_repository_structure(repo_path: str) -> RepositoryStructure:
+    """Retorna a estrutura mapeada do repositório (compatibilidade legada).
 
     Args:
         repo_path: Caminho absoluto ou relativo para a raiz do repositório
