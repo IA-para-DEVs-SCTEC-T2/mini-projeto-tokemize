@@ -20,6 +20,11 @@ from tokemize.generator import CONTEXT_PACK_FOOTER, generate_context_pack, gener
 from tokemize.models import GeneratorOutput, SelectedFile, SelectionOutput, SummaryOutput
 
 
+def _read_text_preserving_newlines(path: Path) -> str:
+    with path.open(encoding="utf-8", newline="") as file:
+        return file.read()
+
+
 # ---------------------------------------------------------------------------
 # Smoke tests de importação
 # ---------------------------------------------------------------------------
@@ -204,9 +209,7 @@ class TestGeneratorProperties:
         with tempfile.TemporaryDirectory() as tmp:
             output_path = Path(tmp) / "cp.md"
             result = generate_context_pack(summary, task, output_path, selection)
-            # Lê o arquivo com newline="" para preservar line endings exatamente
-            # como foram escritos (evita normalização de \r em Windows)
-            assert result.prompt == output_path.read_text(encoding="utf-8", newline="")
+            assert result.prompt == _read_text_preserving_newlines(output_path)
 
     # Feature: context-pack-generator, Property 2: overwrite idempotent
     @given(
@@ -238,9 +241,7 @@ class TestGeneratorProperties:
             output_path = Path(tmp) / "cp.md"
             generate_context_pack(summary1, task1, output_path, selection1)
             result2 = generate_context_pack(summary2, task2, output_path, selection2)
-            # Lê o arquivo com newline="" para preservar line endings exatamente
-            # como foram escritos (evita normalização de \r em Windows)
-            assert output_path.read_text(encoding="utf-8", newline="") == result2.prompt
+            assert _read_text_preserving_newlines(output_path) == result2.prompt
 
     # Feature: context-pack-generator, Property 3: token_count is word count
     @given(
