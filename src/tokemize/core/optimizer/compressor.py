@@ -1,6 +1,7 @@
 """Compressão de contexto do pipeline Tokemize."""
 
-<<<<<<< HEAD
+from __future__ import annotations
+
 from tokemize.models import CompressedContext
 from tokemize.models.artifact import Artifact
 
@@ -10,31 +11,6 @@ def compress_context(artifacts: list[Artifact]) -> CompressedContext:
 
     Agrupa os artefatos por arquivo e gera um bloco Markdown estruturado
     com caminho, linguagem, tipo, nome e linhas de cada artefato.
-=======
-from __future__ import annotations
-
-from tokemize.models import CompressedContext, SelectedContext
-
-
-def compress_context(artifacts: list) -> CompressedContext:
-    """Comprime e resume os artefatos selecionados.
-
-    Args:
-        artifacts: Lista de artefatos selecionados pelo Artifact_Selector.
-
-    Returns:
-        CompressedContext com conteúdo vazio e zero tokens (stub).
-    """
-    return CompressedContext(
-        task_description="",
-        compressed_content="",
-        token_count=0,
-    )
-
-
-def compress_context_from_selected(context: SelectedContext) -> CompressedContext:
-    """Comprime e resume o contexto selecionado (compatibilidade legada).
->>>>>>> 135f5f4 (feat(task005): teste task005)
 
     Args:
         artifacts: Lista de artefatos selecionados pelo Intelligent_Selector.
@@ -65,7 +41,7 @@ def compress_context_from_selected(context: SelectedContext) -> CompressedContex
         for artifact in artifacts_in_file:
             block += (
                 f"- [{artifact.type}] {artifact.name} "
-                f"(linhas {artifact.start_line}–{artifact.end_line})\n"
+                f"(linhas {artifact.start_line}-{artifact.end_line})\n"
             )
         blocks.append(block)
 

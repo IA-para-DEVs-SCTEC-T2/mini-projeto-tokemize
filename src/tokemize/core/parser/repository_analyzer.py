@@ -1,10 +1,11 @@
 """Análise de repositório do pipeline Tokemize.
 
-<<<<<<< HEAD
 Orquestra o RepositoryScanner e o TreeSitterAnalyzer para varrer um
 repositório local e extrair artefatos sintáticos de cada arquivo de
 código-fonte suportado.
 """
+
+from __future__ import annotations
 
 from pathlib import Path
 
@@ -18,7 +19,7 @@ from tokemize.models.artifact import Artifact
 from tokemize.models.file_analysis import FileAnalysis
 
 
-def analyze_repository(repo_path: str) -> RepositoryStructure:
+def analyze_repository(repo_path: str) -> list[FileAnalysis]:
     """Analisa a estrutura de um repositório local e extrai artefatos sintáticos.
 
     Varre recursivamente o diretório ``repo_path`` usando o
@@ -30,49 +31,22 @@ def analyze_repository(repo_path: str) -> RepositoryStructure:
     Arquivos com linguagem não suportada pelo Tree-sitter recebem
     ``language="unknown"`` e ``artifacts=[]`` — nenhuma exceção é propagada
     para arquivos individuais.
-=======
-from __future__ import annotations
-
-from tokemize.models import RepositoryStructure
-
-
-def analyze_repository(repo_path: str) -> list:
-    """Analisa a estrutura de um repositório local.
->>>>>>> 135f5f4 (feat(task005): teste task005)
-
-    Percorre o repositório e retorna uma lista de análises de arquivo
-    com metadados e artefatos extraídos.
 
     Args:
         repo_path: Caminho absoluto ou relativo para a raiz do repositório.
 
     Returns:
-        Lista de análises de arquivo (stub — retorna lista vazia).
-    """
-    return []
+        Lista de FileAnalysis com metadados e artefatos extraídos de cada
+        arquivo suportado encontrado no repositório.
 
-
-def analyze_repository_structure(repo_path: str) -> RepositoryStructure:
-    """Retorna a estrutura mapeada do repositório (compatibilidade legada).
-
-    Args:
-        repo_path: Caminho absoluto ou relativo para a raiz do repositório
-            a ser analisado.
-
-    Returns:
-        RepositoryStructure com a lista de arquivos encontrados e metadados.
-
-    Example:
-        >>> structure = analyze_repository(".")
-        >>> for f in structure.files:
-        ...     print(f.path, f.language)
+    Raises:
+        NotADirectoryError: Se ``repo_path`` não for um diretório válido.
     """
     scanner = RepositoryScanner(ignore_dirs=set(DEFAULT_IGNORE_DIRS))
     analyzer = TreeSitterAnalyzer()
 
     scan_result = scanner.scan(Path(repo_path))
 
-    files: list[FileInfo] = []
     file_analyses: list[FileAnalysis] = []
 
     for file_meta in scan_result.files:
@@ -93,13 +67,28 @@ def analyze_repository_structure(repo_path: str) -> RepositoryStructure:
             )
         )
 
-        files.append(
-            FileInfo(
-                path=str(file_meta.relative_path),
-                language=language,
-                size_bytes=file_meta.size_bytes,
-            )
+    return file_analyses
+
+
+def analyze_repository_structure(repo_path: str) -> RepositoryStructure:
+    """Retorna a estrutura mapeada do repositório (compatibilidade legada).
+
+    Args:
+        repo_path: Caminho absoluto ou relativo para a raiz do repositório.
+
+    Returns:
+        RepositoryStructure com a lista de arquivos encontrados e metadados.
+    """
+    file_analyses = analyze_repository(repo_path)
+
+    files: list[FileInfo] = [
+        FileInfo(
+            path=fa.relative_path,
+            language=fa.language,
+            size_bytes=fa.size_bytes,
         )
+        for fa in file_analyses
+    ]
 
     return RepositoryStructure(
         root_path=repo_path,
