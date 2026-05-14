@@ -1,0 +1,327 @@
+{
+  "created": 1747144200.123456,
+  "duration": 12.34,
+  "exitcode": 1,
+  "root": "/home/runner/work/mini-projeto-tokemize/mini-projeto-tokemize",
+  "environment": {
+    "Python": "3.11.9",
+    "Platform": "Linux-6.5.0-1025-azure-x86_64-with-glibc2.35",
+    "Packages": {
+      "pytest": "8.2.0",
+      "pytest-json-report": "1.5.0",
+      "hypothesis": "6.100.0"
+    }
+  },
+  "summary": {
+    "passed": 40,
+    "failed": 2,
+    "skipped": 0,
+    "total": 42,
+    "collected": 42
+  },
+  "tests": [
+    {
+      "nodeid": "tests/test_metrics_collector_properties.py::test_metrics_extraction_correctness",
+      "lineno": 45,
+      "outcome": "passed",
+      "duration": 0.85,
+      "keywords": ["test_metrics_extraction_correctness", "property"]
+    },
+    {
+      "nodeid": "tests/test_metrics_collector_properties.py::test_metrics_validation",
+      "lineno": 78,
+      "outcome": "passed",
+      "duration": 0.72,
+      "keywords": ["test_metrics_validation", "property"]
+    },
+    {
+      "nodeid": "tests/test_metrics_collector_properties.py::test_status_calculation_correctness",
+      "lineno": 112,
+      "outcome": "passed",
+      "duration": 0.63,
+      "keywords": ["test_status_calculation_correctness", "property"]
+    },
+    {
+      "nodeid": "tests/test_metrics_collector_properties.py::test_config_merge_preserves_existing_data",
+      "lineno": 148,
+      "outcome": "passed",
+      "duration": 0.91,
+      "keywords": ["test_config_merge_preserves_existing_data", "property"]
+    },
+    {
+      "nodeid": "tests/test_metrics_collector_properties.py::test_timestamp_iso8601_utc_format",
+      "lineno": 182,
+      "outcome": "passed",
+      "duration": 0.44,
+      "keywords": ["test_timestamp_iso8601_utc_format", "property"]
+    },
+    {
+      "nodeid": "tests/test_metrics_collector_properties.py::test_json_serialization_round_trip",
+      "lineno": 215,
+      "outcome": "passed",
+      "duration": 0.38,
+      "keywords": ["test_json_serialization_round_trip", "property"]
+    },
+    {
+      "nodeid": "tests/test_metrics_collector_properties.py::test_duration_precision",
+      "lineno": 248,
+      "outcome": "passed",
+      "duration": 0.29,
+      "keywords": ["test_duration_precision", "property"]
+    },
+    {
+      "nodeid": "tests/test_metrics_collector_properties.py::test_metrics_sum_invariant",
+      "lineno": 275,
+      "outcome": "passed",
+      "duration": 0.55,
+      "keywords": ["test_metrics_sum_invariant", "property"]
+    },
+    {
+      "nodeid": "tests/test_cli_examples.py::test_collect_metrics_from_valid_report",
+      "lineno": 22,
+      "outcome": "passed",
+      "duration": 0.18,
+      "keywords": ["test_collect_metrics_from_valid_report"]
+    },
+    {
+      "nodeid": "tests/test_cli_examples.py::test_collect_metrics_missing_coverage",
+      "lineno": 45,
+      "outcome": "passed",
+      "duration": 0.14,
+      "keywords": ["test_collect_metrics_missing_coverage"]
+    },
+    {
+      "nodeid": "tests/test_cli_examples.py::test_collect_metrics_pytest_error",
+      "lineno": 68,
+      "outcome": "passed",
+      "duration": 0.12,
+      "keywords": ["test_collect_metrics_pytest_error"]
+    },
+    {
+      "nodeid": "tests/test_cli_examples.py::test_status_passing_when_no_failures",
+      "lineno": 91,
+      "outcome": "passed",
+      "duration": 0.09,
+      "keywords": ["test_status_passing_when_no_failures"]
+    },
+    {
+      "nodeid": "tests/test_cli_examples.py::test_status_failing_when_failures_exist",
+      "lineno": 108,
+      "outcome": "passed",
+      "duration": 0.10,
+      "keywords": ["test_status_failing_when_failures_exist"]
+    },
+    {
+      "nodeid": "tests/test_cli_examples.py::test_status_unknown_when_no_tests",
+      "lineno": 125,
+      "outcome": "passed",
+      "duration": 0.08,
+      "keywords": ["test_status_unknown_when_no_tests"]
+    },
+    {
+      "nodeid": "tests/test_cli_examples.py::test_duration_rounded_to_two_decimals",
+      "lineno": 142,
+      "outcome": "passed",
+      "duration": 0.11,
+      "keywords": ["test_duration_rounded_to_two_decimals"]
+    },
+    {
+      "nodeid": "tests/test_cli_examples.py::test_config_merge_adds_test_metrics_section",
+      "lineno": 160,
+      "outcome": "passed",
+      "duration": 0.15,
+      "keywords": ["test_config_merge_adds_test_metrics_section"]
+    },
+    {
+      "nodeid": "tests/test_cli_examples.py::test_config_merge_preserves_repo_stats",
+      "lineno": 185,
+      "outcome": "passed",
+      "duration": 0.13,
+      "keywords": ["test_config_merge_preserves_repo_stats"]
+    },
+    {
+      "nodeid": "tests/test_cli_examples.py::test_config_merge_preserves_board_metrics",
+      "lineno": 208,
+      "outcome": "passed",
+      "duration": 0.12,
+      "keywords": ["test_config_merge_preserves_board_metrics"]
+    },
+    {
+      "nodeid": "tests/test_cli_examples.py::test_config_merge_preserves_contributors",
+      "lineno": 231,
+      "outcome": "passed",
+      "duration": 0.11,
+      "keywords": ["test_config_merge_preserves_contributors"]
+    },
+    {
+      "nodeid": "tests/test_cli_examples.py::test_config_merge_preserves_pr_authors",
+      "lineno": 254,
+      "outcome": "passed",
+      "duration": 0.10,
+      "keywords": ["test_config_merge_preserves_pr_authors"]
+    },
+    {
+      "nodeid": "tests/test_cli_examples.py::test_timestamp_format_is_iso8601_utc",
+      "lineno": 277,
+      "outcome": "passed",
+      "duration": 0.09,
+      "keywords": ["test_timestamp_format_is_iso8601_utc"]
+    },
+    {
+      "nodeid": "tests/test_cli_examples.py::test_coverage_field_null_when_unavailable",
+      "lineno": 295,
+      "outcome": "passed",
+      "duration": 0.08,
+      "keywords": ["test_coverage_field_null_when_unavailable"]
+    },
+    {
+      "nodeid": "tests/test_cli_examples.py::test_coverage_extracted_from_coverage_json",
+      "lineno": 312,
+      "outcome": "passed",
+      "duration": 0.10,
+      "keywords": ["test_coverage_extracted_from_coverage_json"]
+    },
+    {
+      "nodeid": "tests/test_cli_examples.py::test_malformed_pytest_report_sets_unknown_status",
+      "lineno": 330,
+      "outcome": "passed",
+      "duration": 0.13,
+      "keywords": ["test_malformed_pytest_report_sets_unknown_status"]
+    },
+    {
+      "nodeid": "tests/test_cli_examples.py::test_malformed_coverage_report_returns_null",
+      "lineno": 350,
+      "outcome": "passed",
+      "duration": 0.11,
+      "keywords": ["test_malformed_coverage_report_returns_null"]
+    },
+    {
+      "nodeid": "tests/test_cli_examples.py::test_total_tests_matches_sum_of_outcomes",
+      "lineno": 368,
+      "outcome": "passed",
+      "duration": 0.09,
+      "keywords": ["test_total_tests_matches_sum_of_outcomes"]
+    },
+    {
+      "nodeid": "tests/test_cli_examples.py::test_passed_count_non_negative",
+      "lineno": 385,
+      "outcome": "passed",
+      "duration": 0.08,
+      "keywords": ["test_passed_count_non_negative"]
+    },
+    {
+      "nodeid": "tests/test_cli_examples.py::test_failed_count_non_negative",
+      "lineno": 400,
+      "outcome": "passed",
+      "duration": 0.08,
+      "keywords": ["test_failed_count_non_negative"]
+    },
+    {
+      "nodeid": "tests/test_cli_examples.py::test_skipped_count_non_negative",
+      "lineno": 415,
+      "outcome": "passed",
+      "duration": 0.08,
+      "keywords": ["test_skipped_count_non_negative"]
+    },
+    {
+      "nodeid": "tests/test_cli_examples.py::test_duration_non_negative",
+      "lineno": 430,
+      "outcome": "passed",
+      "duration": 0.07,
+      "keywords": ["test_duration_non_negative"]
+    },
+    {
+      "nodeid": "tests/test_cli_examples.py::test_coverage_within_valid_range",
+      "lineno": 445,
+      "outcome": "passed",
+      "duration": 0.09,
+      "keywords": ["test_coverage_within_valid_range"]
+    },
+    {
+      "nodeid": "tests/test_cli_examples.py::test_status_enum_values",
+      "lineno": 462,
+      "outcome": "passed",
+      "duration": 0.08,
+      "keywords": ["test_status_enum_values"]
+    },
+    {
+      "nodeid": "tests/test_cli_examples.py::test_fallback_preserves_previous_test_metrics",
+      "lineno": 478,
+      "outcome": "passed",
+      "duration": 0.12,
+      "keywords": ["test_fallback_preserves_previous_test_metrics"]
+    },
+    {
+      "nodeid": "tests/test_cli_examples.py::test_default_metrics_when_config_has_no_test_metrics",
+      "lineno": 500,
+      "outcome": "passed",
+      "duration": 0.11,
+      "keywords": ["test_default_metrics_when_config_has_no_test_metrics"]
+    },
+    {
+      "nodeid": "tests/test_cli_examples.py::test_exit_code_gt1_sets_unknown_status",
+      "lineno": 522,
+      "outcome": "passed",
+      "duration": 0.10,
+      "keywords": ["test_exit_code_gt1_sets_unknown_status"]
+    },
+    {
+      "nodeid": "tests/test_cli_examples.py::test_exit_code_1_sets_failing_status",
+      "lineno": 540,
+      "outcome": "passed",
+      "duration": 0.09,
+      "keywords": ["test_exit_code_1_sets_failing_status"]
+    },
+    {
+      "nodeid": "tests/test_cli_examples.py::test_exit_code_0_sets_passing_status",
+      "lineno": 558,
+      "outcome": "passed",
+      "duration": 0.09,
+      "keywords": ["test_exit_code_0_sets_passing_status"]
+    },
+    {
+      "nodeid": "tests/test_cli_examples.py::test_metrics_json_written_to_tmp",
+      "lineno": 576,
+      "outcome": "passed",
+      "duration": 0.14,
+      "keywords": ["test_metrics_json_written_to_tmp"]
+    },
+    {
+      "nodeid": "tests/test_cli_examples.py::test_metrics_json_contains_all_required_fields",
+      "lineno": 598,
+      "outcome": "passed",
+      "duration": 0.12,
+      "keywords": ["test_metrics_json_contains_all_required_fields"]
+    },
+    {
+      "nodeid": "tests/test_cli_examples.py::test_collect_metrics_with_zero_tests",
+      "lineno": 620,
+      "outcome": "failed",
+      "duration": 0.21,
+      "keywords": ["test_collect_metrics_with_zero_tests"],
+      "call": {
+        "longrepr": "AssertionError: Expected status 'unknown' for zero tests, got 'passing'\nassert result['status'] == 'unknown'\n  where result = collect_test_metrics('pytest-report-zero.json', None, 0)",
+        "crash": {
+          "path": "tests/test_cli_examples.py",
+          "lineno": 635,
+          "message": "AssertionError: Expected status 'unknown' for zero tests, got 'passing'"
+        }
+      }
+    },
+    {
+      "nodeid": "tests/test_cli_examples.py::test_collect_metrics_skipped_only",
+      "lineno": 645,
+      "outcome": "failed",
+      "duration": 0.18,
+      "keywords": ["test_collect_metrics_skipped_only"],
+      "call": {
+        "longrepr": "AssertionError: Expected passed=0 for skipped-only run\nassert result['passed'] == 0\n  where result = collect_test_metrics('pytest-report-skipped.json', None, 0)",
+        "crash": {
+          "path": "tests/test_cli_examples.py",
+          "lineno": 658,
+          "message": "AssertionError: Expected passed=0 for skipped-only run"
+        }
+      }
+    }
+  ]
+}
