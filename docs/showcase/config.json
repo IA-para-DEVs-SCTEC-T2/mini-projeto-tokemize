@@ -101,25 +101,25 @@
     "projectNumber": 5,
     "totalCards": 28,
     "cardsByStatus": {
-      "Done": 24,
+      "Done": 25,
       "Todo": 2,
-      "Revision": 2
+      "Revision": 1
     },
-    "lastUpdatedAt": "2026-05-13T19:55:19.713351+00:00"
+    "lastUpdatedAt": "2026-05-14T03:29:09.663746+00:00"
   },
   "repoStats": {
-    "totalCommits": 140,
-    "openPRs": 0,
-    "closedPRs": 55,
+    "totalCommits": 141,
+    "openPRs": 2,
+    "closedPRs": 59,
     "contributors": 7,
-    "activeBranches": 4,
-    "lastCommitAt": "2026-05-13T14:35:09Z",
-    "fetchedAt": "2026-05-13T19:55:19.713444+00:00"
+    "activeBranches": 5,
+    "lastCommitAt": "2026-05-13T19:55:19Z",
+    "fetchedAt": "2026-05-14T03:29:09.663838+00:00"
   },
   "contributors": [
     {
       "avatar_url": "https://avatars.githubusercontent.com/in/15368?v=4",
-      "contributions": 53,
+      "contributions": 54,
       "html_url": "https://github.com/apps/github-actions",
       "login": "github-actions[bot]"
     },
@@ -163,8 +163,8 @@
   "prAuthors": [
     {
       "login": "jrcosta",
-      "total": 26,
-      "open": 0,
+      "total": 28,
+      "open": 2,
       "closed": 26,
       "avatar_url": "https://avatars.githubusercontent.com/u/22981568?v=4",
       "html_url": "https://github.com/jrcosta"
@@ -172,10 +172,18 @@
     {
       "login": "edunotari",
       "total": 13,
-      "open": 1,
-      "closed": 12,
+      "open": 0,
+      "closed": 13,
       "avatar_url": "https://avatars.githubusercontent.com/u/65471872?v=4",
       "html_url": "https://github.com/edunotari"
+    },
+    {
+      "login": "gvmertens",
+      "total": 8,
+      "open": 0,
+      "closed": 8,
+      "avatar_url": "https://avatars.githubusercontent.com/u/14351143?v=4",
+      "html_url": "https://github.com/gvmertens"
     },
     {
       "login": "samuelmarquesgit",
@@ -184,14 +192,6 @@
       "closed": 7,
       "avatar_url": "https://avatars.githubusercontent.com/u/237599657?v=4",
       "html_url": "https://github.com/samuelmarquesgit"
-    },
-    {
-      "login": "gvmertens",
-      "total": 5,
-      "open": 0,
-      "closed": 5,
-      "avatar_url": "https://avatars.githubusercontent.com/u/14351143?v=4",
-      "html_url": "https://github.com/gvmertens"
     },
     {
       "login": "PauloSergioLR",
