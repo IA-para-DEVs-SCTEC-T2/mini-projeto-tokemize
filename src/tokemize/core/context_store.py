@@ -67,7 +67,7 @@ def save_context(
         qualquer erro de I/O ocorrer.
     """
     try:
-        slug = _generate_slug(task_description)
+        slug = _generate_slug(task_description) or "context"
         date = datetime.now().strftime("%Y%m%d")
         filename = f"{slug}-{date}.md"
         context_dir = Path(repo_path) / ".tokemize" / "context"

@@ -106,10 +106,12 @@ def make_failing_metrics(
     Returns:
         Dict de métricas com status "failing" e pelo menos um teste falhado.
     """
+    total_tests = max(0, total_tests)
+    failed = max(0, min(failed, total_tests))
     passed = total_tests - failed
     return make_test_metrics(
         total_tests=total_tests,
-        passed=max(0, passed),
+        passed=passed,
         failed=failed,
         skipped=0,
         duration=8.50,
@@ -195,13 +197,16 @@ def make_no_coverage_metrics(
     Returns:
         Dict de métricas com coverage=None.
     """
+    total_tests = max(0, total_tests)
+    passed = max(0, min(passed, total_tests))
+    failed = total_tests - passed
     return make_test_metrics(
         total_tests=total_tests,
         passed=passed,
-        failed=total_tests - passed,
+        failed=failed,
         skipped=0,
         coverage=None,
-        status="passing" if passed == total_tests and total_tests > 0 else "failing",
+        status="passing" if failed == 0 and total_tests > 0 else "failing",
     )
 
 

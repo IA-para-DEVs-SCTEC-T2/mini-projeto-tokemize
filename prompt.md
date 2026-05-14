@@ -94,8 +94,8 @@ mini-projeto-tokemize/
 │   ├── core/
 │   │   ├── parser/             # Scanner, TreeSitterAnalyzer, RepositoryParser
 │   │   ├── optimizer/          # Compressor e utilitários de compactação
+│   │   │   └── prompt_builder.py # Geração do prompt otimizado
 │   │   ├── context_store.py    # Persistência local do contexto compacto
-│   │   └── prompt_builder.py   # Geração do prompt otimizado
 │   ├── integrations/
 │   │   └── clipboard.py        # Cópia do prompt para a área de transferência
 │   ├── models/                 # Dataclasses: Artifact, Chunk, etc.
@@ -134,7 +134,7 @@ mini-projeto-tokemize/
 | `models/` | Dataclasses tipadas que trafegam entre camadas |
 | `selector.py` | Busca semântica no índice FAISS |
 | `core/optimizer/compressor.py` | Compressão local do contexto selecionado |
-| `core/prompt_builder.py` | Geração do prompt final em Markdown |
+| `core/optimizer/prompt_builder.py` | Geração do prompt final em Markdown |
 | `cache.py` | Cache de contexto para consultas repetitivas |
 
 ---
@@ -230,7 +230,7 @@ Ao trabalhar neste projeto, o agente deve:
 - [x] `selector.py` — seleção semântica (em desenvolvimento)
 - [x] `compressor.py` — compactação local do contexto selecionado
 - [x] `context_store.py` — persistência local do contexto compacto
-- [x] `prompt_builder.py` — geração do prompt otimizado
+- [x] `core/optimizer/prompt_builder.py` — geração do prompt otimizado
 - [x] `cache.py` — cache de contexto (em desenvolvimento)
 - [ ] `Indexer` — indexação vetorial com FAISS
 - [ ] `EmbeddingsClient` — geração de embeddings multi-provedor

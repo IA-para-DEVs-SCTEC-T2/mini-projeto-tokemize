@@ -190,6 +190,17 @@ def test_metrics_extraction_correctness(
     else:
         assert result["coverage"] is None, "coverage should be None when no report is provided"
 
+    assert result["duration"] == round(pytest_report["duration"], 2), (
+        f"duration mismatch: expected {round(pytest_report['duration'], 2)}, got {result['duration']}"
+    )
+    assert result["status"] == calculate_status(summary["failed"], summary["total"], exit_code), (
+        "status mismatch with calculate_status() rule"
+    )
+    last_run_at = result.get("lastRunAt")
+    assert isinstance(last_run_at, str) and _ISO8601_UTC_RE.match(last_run_at), (
+        f"lastRunAt={last_run_at!r} does not match ISO 8601 UTC format YYYY-MM-DDTHH:MM:SSZ"
+    )
+
 
 # ---------------------------------------------------------------------------
 # Property 2: Test Metrics Validation

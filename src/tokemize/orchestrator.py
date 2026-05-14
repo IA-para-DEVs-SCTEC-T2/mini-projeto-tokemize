@@ -1,7 +1,7 @@
 """Orquestrador central do pipeline Tokemize.
 
-Coordena a execução sequencial das 5 etapas do pipeline:
-scanner → analyzer → selector → generator → reporter.
+Coordena a execução sequencial das 6 etapas do pipeline:
+scanner → analyzer → selector → summarizer → generator → reporter.
 """
 
 from __future__ import annotations
@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 def run_pipeline(repo_path: str, task: str) -> PipelineResult:
     """Executa o pipeline completo de otimização de contexto.
 
-    Coordena a execução sequencial das 5 etapas do pipeline, propagando
+    Coordena a execução sequencial das 6 etapas do pipeline, propagando
     dados entre elas, capturando falhas com logging estruturado e retornando
     um ``PipelineResult`` com o resultado final e metadados de execução.
 

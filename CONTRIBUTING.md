@@ -303,9 +303,9 @@ mini-projeto-tokemize/
 │       │   ├── selector/
 │       │   │   └── intelligent_selector.py # Seleção por relevância
 │       │   ├── optimizer/
-│       │   │   └── compressor.py           # Compactação de contexto
+│       │   │   ├── compressor.py           # Compactação de contexto
+│       │   │   └── prompt_builder.py       # Geração do prompt final
 │       │   ├── context_store.py            # Persistência em disco
-│       │   └── prompt_builder.py           # Geração do prompt final
 │       ├── integrations/
 │       │   ├── llm/                        # Clientes de LLM (protocolo + implementações)
 │       │   ├── clipboard.py                # Cópia para área de transferência
@@ -338,7 +338,7 @@ mini-projeto-tokemize/
 | `core/selector/` | Seleciona artefatos relevantes para a tarefa |
 | `core/optimizer/` | Compacta o contexto selecionado |
 | `core/context_store.py` | Persiste o contexto em disco |
-| `core/prompt_builder.py` | Monta o prompt Markdown final |
+| `core/optimizer/prompt_builder.py` | Monta o prompt Markdown final |
 | `integrations/llm/` | Abstração para clientes de LLM |
 | `integrations/clipboard.py` | Cópia para área de transferência |
 | `models/` | Estruturas de dados compartilhadas entre camadas |

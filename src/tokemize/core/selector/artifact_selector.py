@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+from tokemize.core.selector.intelligent_selector import (
+    select_relevant_artifacts as select_intelligent_artifacts,
+)
 from tokemize.models.artifact import Artifact
 from tokemize.models.file_analysis import FileAnalysis
 
@@ -12,22 +15,20 @@ def select_relevant_artifacts(
 ) -> list[Artifact]:
     """Seleciona os artefatos relevantes a partir das análises de arquivo.
 
-    Extrai todos os artefatos de todos os arquivos analisados. Artefatos
-    cujo ``file_path`` esteja vazio recebem o ``relative_path`` do
-    ``FileAnalysis`` correspondente.
+    Normaliza os artefatos cujo ``file_path`` esteja vazio e delega a
+    seleção por relevância ao seletor inteligente.
 
     Args:
         file_analyses: Lista de FileAnalysis retornadas pelo Repository_Analyzer.
         task_description: Descrição da tarefa técnica a ser realizada.
 
     Returns:
-        Lista plana de Artifact extraídos de todos os arquivos analisados.
+        Lista de Artifact filtrados por relevância para a tarefa.
     """
-    artifacts: list[Artifact] = []
     for fa in file_analyses:
         for artifact in fa.artifacts:
             # Garante que file_path está preenchido
             if not artifact.file_path:
                 artifact.file_path = fa.relative_path
-            artifacts.append(artifact)
-    return artifacts
+
+    return select_intelligent_artifacts(file_analyses, task_description)

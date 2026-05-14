@@ -496,7 +496,7 @@ def validate_metrics(metrics: dict) -> dict:
 - **DEBUG**: Detailed parsing steps, field extraction, validation results
 
 **Log Format**:
-```
+```text
 [LEVEL] [Component] Message
 [ERROR] [TestMetricsCollector] Failed to parse pytest report: Unexpected EOF at line 42
 [WARNING] [TestMetricsCollector] Coverage report not found, omitting coverage field
@@ -868,7 +868,7 @@ The CI workflow should trigger metrics updater only on main branch:
 
 ### Example Workflow Run
 
-```
+```text
 1. Developer pushes code to feature branch
 2. GitHub triggers ci-tests.yml workflow
 3. Workflow checks out code

@@ -3,7 +3,7 @@
 ## Tokemize: Otimização de Contexto para LLMs
 
 **Versão:** 1.0  
-**Data:** 2025-05-13  
+**Data:** 2026-05-13  
 **Equipe:** Eneri da Costa Junior, Guilherme Valerio Mertens, Paulo Sergio, Samuel Magalhães Marques, Eduardo Notari
 
 ---

@@ -11,6 +11,7 @@ from pathlib import Path
 
 from tokemize.core.parser.scanner import DEFAULT_IGNORE_DIRS, RepositoryScanner
 from tokemize.core.parser.tree_sitter_analyzer import (
+    ParseError,
     TreeSitterAnalyzer,
     UnsupportedLanguageError,
 )
@@ -53,7 +54,7 @@ def analyze_repository(repo_path: str) -> list[FileAnalysis]:
         try:
             artifacts: list[Artifact] = analyzer.analyze(file_meta.path)
             language: str = file_meta.language
-        except UnsupportedLanguageError:
+        except (UnsupportedLanguageError, FileNotFoundError, ParseError):
             artifacts = []
             language = "unknown"
 

@@ -2,7 +2,7 @@
 
 ## Task
 
-{i
+Preparar um pacote de contexto técnico legível para orientar a execução da tarefa solicitada.
 
 ## Complete Files
 

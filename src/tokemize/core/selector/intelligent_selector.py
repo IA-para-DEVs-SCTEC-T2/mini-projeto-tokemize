@@ -87,7 +87,13 @@ def select_relevant_artifacts(
         Lista de artefatos ordenados por relevância decrescente, com no
         máximo ``top_n`` elementos. Retorna lista vazia se não houver
         artefatos em ``file_analyses``.
+
+    Raises:
+        ValueError: Se ``top_n`` não for um inteiro positivo.
     """
+    if not isinstance(top_n, int) or top_n <= 0:
+        raise ValueError("top_n must be a positive integer")
+
     tokens = _tokenize(task_description)
 
     scored: list[tuple[Artifact, int]] = []

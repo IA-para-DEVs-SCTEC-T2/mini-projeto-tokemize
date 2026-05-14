@@ -32,6 +32,7 @@ jobs:
 
       - name: Run pytest with coverage
         run: |
+          set +e
           pytest \
             --json-report \
             --json-report-file=pytest-report.json \
@@ -39,8 +40,10 @@ jobs:
             --cov-report=json \
             --cov-report=term \
             -v \
-            --tb=short || true
-          echo "PYTEST_EXIT_CODE=$?" >> "$GITHUB_ENV"
+            --tb=short
+          PYTEST_EXIT_CODE=$?
+          echo "PYTEST_EXIT_CODE=$PYTEST_EXIT_CODE" >> "$GITHUB_ENV"
+          set -e
         continue-on-error: true
 
       - name: Collect test metrics

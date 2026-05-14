@@ -96,6 +96,19 @@ def validate_metrics(metrics: dict) -> dict:
     passed = int(_clamp(metrics.get("passed", 0), 0, total))
     failed = int(_clamp(metrics.get("failed", 0), 0, total))
     skipped = int(_clamp(metrics.get("skipped", 0), 0, total))
+    excess = (passed + failed + skipped) - total
+    if excess > 0:
+        reduce_failed = min(failed, excess)
+        failed -= reduce_failed
+        excess -= reduce_failed
+
+        reduce_skipped = min(skipped, excess)
+        skipped -= reduce_skipped
+        excess -= reduce_skipped
+
+        if excess > 0:
+            passed = max(0, passed - excess)
+
     duration = round(float(_clamp(metrics.get("duration", 0.0), 0.0, 86_400.0)), 2)
 
     raw_coverage = metrics.get("coverage")
@@ -160,8 +173,8 @@ def _parse_pytest_report(pytest_json_path: str) -> dict:
         passed = int(summary.get("passed", 0))
         failed = int(summary.get("failed", 0))
         skipped = int(summary.get("skipped", 0))
-    except KeyError as exc:
-        logger.warning("Missing key in pytest report summary: %s — using defaults", exc)
+    except (KeyError, TypeError, ValueError) as exc:
+        logger.warning("Invalid pytest report summary: %s — using defaults", exc)
         total = passed = failed = skipped = 0
 
     try:
@@ -209,9 +222,9 @@ def _parse_coverage_report(coverage_json_path: Optional[str]) -> Optional[float]
             exc,
         )
         return None
-    except KeyError as exc:
+    except (KeyError, TypeError, ValueError) as exc:
         logger.warning(
-            "Missing key in coverage report (%s): %s — coverage will be null",
+            "Invalid coverage data in report (%s): %s — coverage will be null",
             coverage_json_path,
             exc,
         )
