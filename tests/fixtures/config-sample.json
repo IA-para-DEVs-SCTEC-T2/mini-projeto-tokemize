@@ -1,0 +1,90 @@
+{
+  "repoStats": {
+    "stars": 42,
+    "forks": 7,
+    "openIssues": 3,
+    "watchers": 12,
+    "size": 1024,
+    "language": "Python",
+    "license": "MIT",
+    "defaultBranch": "main",
+    "createdAt": "2024-01-15T10:00:00Z",
+    "updatedAt": "2026-05-13T14:00:00Z",
+    "description": "Agente inteligente de otimização de contexto para LLMs",
+    "topics": ["llm", "context-optimization", "python", "faiss", "tree-sitter"],
+    "lastCommitAt": "2026-05-13T13:45:00Z",
+    "commitCount": 187
+  },
+  "boardMetrics": {
+    "totalCards": 24,
+    "doneCards": 18,
+    "inProgressCards": 4,
+    "todoCards": 2,
+    "completionRate": 75.0,
+    "averageCycleTimeDays": 3.2,
+    "lastUpdatedAt": "2026-05-13T14:00:00Z",
+    "sprintVelocity": 12,
+    "backlogSize": 8
+  },
+  "contributors": [
+    {
+      "login": "eneri-junior",
+      "name": "Eneri Junior",
+      "avatarUrl": "https://avatars.githubusercontent.com/u/12345678?v=4",
+      "profileUrl": "https://github.com/eneri-junior",
+      "contributions": 142,
+      "firstContributionAt": "2024-01-15T10:00:00Z",
+      "lastContributionAt": "2026-05-13T13:45:00Z"
+    },
+    {
+      "login": "contributor-2",
+      "name": "Contributor Two",
+      "avatarUrl": "https://avatars.githubusercontent.com/u/87654321?v=4",
+      "profileUrl": "https://github.com/contributor-2",
+      "contributions": 35,
+      "firstContributionAt": "2024-03-10T09:00:00Z",
+      "lastContributionAt": "2026-04-28T16:30:00Z"
+    },
+    {
+      "login": "contributor-3",
+      "name": "Contributor Three",
+      "avatarUrl": "https://avatars.githubusercontent.com/u/11223344?v=4",
+      "profileUrl": "https://github.com/contributor-3",
+      "contributions": 10,
+      "firstContributionAt": "2024-06-01T11:00:00Z",
+      "lastContributionAt": "2026-02-14T10:15:00Z"
+    }
+  ],
+  "prAuthors": [
+    {
+      "login": "eneri-junior",
+      "name": "Eneri Junior",
+      "avatarUrl": "https://avatars.githubusercontent.com/u/12345678?v=4",
+      "profileUrl": "https://github.com/eneri-junior",
+      "mergedPRs": 58,
+      "openPRs": 2,
+      "closedPRs": 5,
+      "lastPRAt": "2026-05-13T13:45:00Z"
+    },
+    {
+      "login": "contributor-2",
+      "name": "Contributor Two",
+      "avatarUrl": "https://avatars.githubusercontent.com/u/87654321?v=4",
+      "profileUrl": "https://github.com/contributor-2",
+      "mergedPRs": 12,
+      "openPRs": 1,
+      "closedPRs": 2,
+      "lastPRAt": "2026-04-28T16:30:00Z"
+    }
+  ],
+  "testMetrics": {
+    "totalTests": 42,
+    "passed": 40,
+    "failed": 2,
+    "skipped": 0,
+    "duration": 12.34,
+    "coverage": 85.0,
+    "lastRunAt": "2026-05-13T14:30:00Z",
+    "status": "failing"
+  }
+}
