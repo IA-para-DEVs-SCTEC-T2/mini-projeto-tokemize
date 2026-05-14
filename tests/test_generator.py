@@ -16,7 +16,7 @@ import pytest
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
-from tokemize.generator import LLM_INSTRUCTION, generate_context_pack, generate_prompt
+from tokemize.generator import CONTEXT_PACK_FOOTER, generate_context_pack, generate_prompt
 from tokemize.models import GeneratorOutput, SelectedFile, SelectionOutput, SummaryOutput
 
 
@@ -93,14 +93,14 @@ class TestGenerateContextPackExamples:
         assert "Total de arquivos selecionados: 0" in result.prompt
         assert "_nenhuma_" in result.prompt
 
-    def test_llm_instruction_present(self, tmp_path: Path):
-        """A seção '## LLM Instruction' está presente no output gerado."""
+    def test_footer_present(self, tmp_path: Path):
+        """A seção '## Context' está presente no output gerado."""
         result = generate_context_pack(
             SummaryOutput(),
             "task",
             tmp_path / "out.md",
         )
-        assert "## LLM Instruction" in result.prompt
+        assert "## Context" in result.prompt
 
     def test_generate_prompt_compat_wrapper(self, tmp_path: Path, monkeypatch):
         """generate_prompt retorna GeneratorOutput com prompt não vazio e token_count >= 0."""
@@ -365,8 +365,8 @@ class TestGeneratorProperties:
             pos_complete = prompt.index("## Complete Files")
             pos_summarized = prompt.index("## Summarized Files")
             pos_technical = prompt.index("## Technical Context")
-            pos_llm = prompt.index("## LLM Instruction")
-            assert pos_task < pos_complete < pos_summarized < pos_technical < pos_llm
+            pos_footer = prompt.index("## Context")
+            assert pos_task < pos_complete < pos_summarized < pos_technical < pos_footer
 
     # Feature: context-pack-generator, Property 7: file path and language in output
     @given(
@@ -530,15 +530,15 @@ class TestGeneratorProperties:
         selection1: SelectionOutput,
         selection2: SelectionOutput,
     ):
-        """Property 10: LLM Instruction é estática e idempotente.
+        """Property 10: Footer de contexto é estático e idempotente.
 
-        Para dois conjuntos de inputs distintos, a seção ## LLM Instruction
+        Para dois conjuntos de inputs distintos, a seção ## Context
         extraída de cada prompt deve ser idêntica.
 
         Validates: Requirements 5.3
         """
-        def extract_llm_section(prompt: str) -> str:
-            marker = "## LLM Instruction\n\n"
+        def extract_footer_section(prompt: str) -> str:
+            marker = "## Context\n\n"
             start = prompt.index(marker) + len(marker)
             return prompt[start:]
 
@@ -550,9 +550,9 @@ class TestGeneratorProperties:
             out2 = Path(tmp2) / "cp2.md"
             result2 = generate_context_pack(summary2, task2, out2, selection2)
 
-        llm_section1 = extract_llm_section(result1.prompt)
-        llm_section2 = extract_llm_section(result2.prompt)
-        assert llm_section1 == llm_section2
+        footer1 = extract_footer_section(result1.prompt)
+        footer2 = extract_footer_section(result2.prompt)
+        assert footer1 == footer2
 
     # Feature: context-pack-generator, Property 11: section titles unique
     @given(
@@ -586,4 +586,4 @@ class TestGeneratorProperties:
             assert titles.count("## Complete Files") == 1
             assert titles.count("## Summarized Files") == 1
             assert titles.count("## Technical Context") == 1
-            assert titles.count("## LLM Instruction") == 1
+            assert titles.count("## Context") == 1
