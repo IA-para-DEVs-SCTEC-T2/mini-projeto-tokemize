@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "tokemize"
 version = "0.1.0"
-description = "Otimização de contexto para LLMs"
+description = "Otimização de contexto para desenvolvimento de software"
 requires-python = ">=3.11"
 dependencies = [
     "tree-sitter==0.25.2",
@@ -13,7 +13,6 @@ dependencies = [
     "tree-sitter-java",
     "tree-sitter-javascript",
     "tree-sitter-typescript",
-    "python-dotenv",
     "typer==0.12.3",
     "pyperclip>=1.8.2",
 ]
