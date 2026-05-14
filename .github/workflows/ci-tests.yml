@@ -67,6 +67,22 @@ jobs:
             test-metrics.json
           retention-days: 7
 
+      - name: Print pytest summary if failed
+        if: env.PYTEST_EXIT_CODE != '0'
+        run: |
+          echo "=== pytest-report.json (failures only) ==="
+          python -c "
+          import json, sys
+          with open('pytest-report.json') as f:
+              report = json.load(f)
+          failed = [t for t in report.get('tests', []) if t.get('outcome') == 'failed']
+          for t in failed:
+              print('FAILED:', t['nodeid'])
+              print(t.get('call', {}).get('longrepr', '(no traceback)'))
+              print('---')
+          print(f'Total failed: {len(failed)}')
+          "
+
       - name: Fail job if pytest failed
         run: |
           echo "pytest exited with code $PYTEST_EXIT_CODE"
