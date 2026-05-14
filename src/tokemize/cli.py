@@ -161,9 +161,9 @@ def _run_pipeline(
     typer.echo("[6/6] Copiando para clipboard...")
     try:
         copy_to_clipboard(prompt.content)
-        typer.echo("Prompt copiado para a area de transferencia.")
+        typer.echo("✅ Prompt copiado para a área de transferência.")
     except ClipboardError as exc:
-        typer.echo(f"Nao foi possivel copiar para o clipboard: {exc}")
+        typer.echo(f"⚠️ não foi possível copiar para o clipboard: {exc}")
 
 
 @app.command()

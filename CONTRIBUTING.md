@@ -340,7 +340,7 @@ mini-projeto-tokemize/
 | `core/context_store.py` | Persiste o contexto em disco |
 | `core/optimizer/prompt_builder.py` | Monta o prompt Markdown final |
 | `integrations/llm/` | Abstração para clientes de LLM |
-| `integrations/clipboard.py` | Cópia para área de transferência |
+| `integrations/clipboard/` | Cópia para área de transferência |
 | `models/` | Estruturas de dados compartilhadas entre camadas |
 | `cli.py` | Comandos `toke` e `prepare` via Typer |
 

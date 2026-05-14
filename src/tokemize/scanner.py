@@ -9,8 +9,6 @@ Expõe duas interfaces:
 
 from __future__ import annotations
 
-import os
-
 from tokemize.core.parser.scanner import (  # noqa: F401
     DEFAULT_IGNORE_DIRS,
     EXTENSION_TO_LANGUAGE,
@@ -56,6 +54,11 @@ def scan_repository(repo_path: str) -> ScanOutput:
         True
     """
     from pathlib import Path
+
+    if not repo_path.strip():
+        raise NotADirectoryError(
+            f"O caminho fornecido não é um diretório válido: {repo_path}"
+        )
 
     scanner = RepositoryScanner()
     result = scanner.scan(Path(repo_path))

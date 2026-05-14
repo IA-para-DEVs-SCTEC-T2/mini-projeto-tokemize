@@ -130,7 +130,7 @@ mini-projeto-tokemize/
 | `core/parser/scanner.py` | Percorre o repositório, aplica ignores, coleta metadados |
 | `core/parser/tree_sitter_analyzer.py` | Extrai classes, funções, métodos e imports via Tree-sitter |
 | `core/parser/repository_parser.py` | Orquestra Scanner → Analyzer, retorna `RepositoryParseResult` |
-| `integrations/clipboard.py` | Copia o prompt otimizado para a área de transferência |
+| `integrations/clipboard/` | Copia o prompt otimizado para a área de transferência |
 | `models/` | Dataclasses tipadas que trafegam entre camadas |
 | `selector.py` | Busca semântica no índice FAISS |
 | `core/optimizer/compressor.py` | Compressão local do contexto selecionado |
