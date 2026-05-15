@@ -1,13 +1,11 @@
 """Módulo de geração do Context Pack para o pipeline Tokemize.
 
-Este módulo é responsável por montar o documento Markdown estruturado
-(`context_pack.md`) com todo o contexto otimizado: tarefa do usuário,
-arquivos completos, arquivos resumidos, contexto técnico do repositório
-e instrução ao LLM.
+Monta o documento Markdown estruturado (`context_pack.md`) com o contexto
+otimizado: tarefa do usuário, arquivos completos, arquivos resumidos e
+contexto técnico do repositório.
 
 A função pública principal é `generate_context_pack`. O wrapper
-`generate_prompt` mantém compatibilidade retroativa com o orquestrador
-existente.
+`generate_prompt` mantém compatibilidade com o orquestrador.
 """
 
 from __future__ import annotations
@@ -24,15 +22,12 @@ from tokemize.models import (
 
 logger = logging.getLogger(__name__)
 
-# ── Constante de instrução ao LLM ─────────────────────────────────────────────
+# ── Constante de instrução ao usuário ────────────────────────────────────────
 
-LLM_INSTRUCTION: str = (
-    "Você é um assistente de desenvolvimento de software especializado. "
-    "Analise cuidadosamente o contexto fornecido nas seções acima — "
-    "incluindo os arquivos completos, os resumos e o contexto técnico do "
-    "repositório — e responda à tarefa descrita na seção '## Task'. "
-    "Baseie sua resposta exclusivamente no contexto fornecido. "
-    "Seja preciso, objetivo e forneça código funcional quando aplicável."
+CONTEXT_PACK_FOOTER: str = (
+    "Use o contexto fornecido nas seções acima para realizar a tarefa descrita "
+    "na seção '## Task'. Os arquivos completos e os resumos contêm toda a "
+    "informação necessária."
 )
 
 
@@ -173,25 +168,18 @@ def _format_technical_context_section(selected_files: list[SelectedFile]) -> str
     )
 
 
-def _format_llm_instruction_section() -> str:
-    """Formata a seção ``## LLM Instruction`` do Context Pack.
-
-    Retorna a seção com a constante estática ``LLM_INSTRUCTION``, que
-    orienta o LLM a usar o contexto fornecido para responder à tarefa
-    descrita na seção ``## Task``.
+def _format_footer_section() -> str:
+    """Formata a seção ``## Context`` do Context Pack.
 
     Returns:
-        String Markdown com o cabeçalho ``## LLM Instruction`` seguido
-        do conteúdo da constante ``LLM_INSTRUCTION``.
+        String Markdown com o cabeçalho ``## Context`` seguido do rodapé.
 
     Example:
-        >>> section = _format_llm_instruction_section()
-        >>> section.startswith("## LLM Instruction")
-        True
-        >>> "## Task" in section
+        >>> section = _format_footer_section()
+        >>> section.startswith("## Context")
         True
     """
-    return f"## LLM Instruction\n\n{LLM_INSTRUCTION}"
+    return f"## Context\n\n{CONTEXT_PACK_FOOTER}"
 
 
 # ── Funções de orquestração e I/O ─────────────────────────────────────────────
@@ -234,7 +222,7 @@ def _build_context_pack(
         _format_complete_files_section(selected_files),
         _format_summarized_files_section(summary_output),
         _format_technical_context_section(selected_files),
-        _format_llm_instruction_section(),
+        _format_footer_section(),
     ]
     return "\n\n".join(sections)
 

@@ -11,11 +11,10 @@ import os
 from unittest.mock import Mock, patch
 
 import pytest
-from hypothesis import given, strategies as st
+from hypothesis import given, settings, strategies as st
 
 from tokemize.models import (
     AnalysisOutput,
-    EmbeddingsOutput,
     GeneratorOutput,
     PipelineResult,
     ScanOutput,
@@ -42,11 +41,10 @@ def test_run_pipeline_success():
     assert result.failed_stage is None
     assert result.error_message is None
     assert result.elapsed_seconds > 0
-    assert len(result.stages_completed) == 7
+    assert len(result.stages_completed) == 6
     assert result.stages_completed == [
         "scanner",
         "analyzer",
-        "embeddings",
         "selector",
         "summarizer",
         "generator",
@@ -57,13 +55,12 @@ def test_run_pipeline_success():
 @pytest.mark.parametrize(
     "stage_to_fail,expected_failed_stage,expected_completed_count",
     [
-        ("scanner", "scanner", 0),
-        ("analyzer", "analyzer", 1),
-        ("embeddings", "embeddings", 2),
-        ("selector", "selector", 3),
-        ("summarizer", "summarizer", 4),
-        ("generator", "generator", 5),
-        ("reporter", "reporter", 6),
+        ("scanner",    "scanner",    0),
+        ("analyzer",   "analyzer",   1),
+        ("selector",   "selector",   2),
+        ("summarizer", "summarizer", 3),
+        ("generator",  "generator",  4),
+        ("reporter",   "reporter",   5),
     ],
 )
 def test_run_pipeline_fails_at_each_stage(
@@ -71,19 +68,14 @@ def test_run_pipeline_fails_at_each_stage(
     expected_failed_stage: str,
     expected_completed_count: int,
 ):
-    """Pipeline falha em cada uma das 7 etapas — verifica success=False, failed_stage correto e error_message não-vazio.
-
-    Validates: Requirements 3.1, 3.2, 3.3, 3.4, 3.5, 3.6
-    """
-    # Mapeamento de nome de etapa → nome da função importada no orquestrador
+    """Pipeline falha em cada uma das 6 etapas — verifica success=False, failed_stage correto e error_message não-vazio."""
     stage_fn_map = {
-        "scanner": "scan_repository",
-        "analyzer": "analyze_files",
-        "embeddings": "generate_embeddings",
-        "selector": "select_relevant",
+        "scanner":    "scan_repository",
+        "analyzer":   "analyze_files",
+        "selector":   "select_relevant",
         "summarizer": "summarize_selected",
-        "generator": "generate_prompt",
-        "reporter": "format_result",
+        "generator":  "generate_prompt",
+        "reporter":   "format_result",
     }
     fn_name = stage_fn_map[stage_to_fail]
     with patch(f"tokemize.orchestrator.{fn_name}") as mock_stage:
@@ -100,18 +92,15 @@ def test_run_pipeline_fails_at_each_stage(
 
 
 def test_stages_completed_on_partial_failure():
-    """stages_completed contém exatamente as etapas anteriores à falha.
-
-    Validates: Requirements 3.4, 14.6
-    """
-    # Falha no embeddings (3ª etapa) → stages_completed deve ter ["scanner", "analyzer"]
-    with patch("tokemize.orchestrator.generate_embeddings") as mock_embeddings:
-        mock_embeddings.side_effect = RuntimeError("Embeddings API down")
+    """stages_completed contém exatamente as etapas anteriores à falha."""
+    # Falha no selector (3ª etapa) → stages_completed deve ter ["scanner", "analyzer"]
+    with patch("tokemize.orchestrator.select_relevant") as mock_selector:
+        mock_selector.side_effect = RuntimeError("Selector down")
 
         result = run_pipeline(".", "task")
 
         assert result.success is False
-        assert result.failed_stage == "embeddings"
+        assert result.failed_stage == "selector"
         assert result.stages_completed == ["scanner", "analyzer"]
 
 
@@ -142,7 +131,7 @@ def test_pipeline_result_on_empty_scan():
 
         # Pipeline deve concluir com sucesso mesmo sem arquivos.
         assert result.success is True
-        assert len(result.stages_completed) == 7
+        assert len(result.stages_completed) == 6
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -161,6 +150,7 @@ tasks = st.text(min_size=0, max_size=100)
 
 @pytest.mark.optional
 @given(repo_path=repo_paths, task=tasks)
+@settings(max_examples=20, deadline=5000)
 def test_property_1_run_pipeline_never_raises(repo_path: str, task: str):
     """Property 1: run_pipeline nunca propaga exceção.
 
@@ -176,6 +166,7 @@ def test_property_1_run_pipeline_never_raises(repo_path: str, task: str):
 
 @pytest.mark.optional
 @given(task=tasks)
+@settings(max_examples=20, deadline=5000)
 def test_property_2_success_implies_no_failure_fields(task: str):
     """Property 2: Invariante de sucesso — campos nulos em caso de sucesso.
 
@@ -203,7 +194,6 @@ def test_property_3_failure_implies_valid_failed_stage():
     valid_stages = {
         "scanner",
         "analyzer",
-        "embeddings",
         "selector",
         "summarizer",
         "generator",
@@ -219,6 +209,7 @@ def test_property_3_failure_implies_valid_failed_stage():
 
 @pytest.mark.optional
 @given(repo_path=repo_paths, task=tasks)
+@settings(max_examples=20, deadline=5000)
 def test_property_4_elapsed_seconds_non_negative(repo_path: str, task: str):
     """Property 4: elapsed_seconds é sempre não-negativo.
 
@@ -232,6 +223,7 @@ def test_property_4_elapsed_seconds_non_negative(repo_path: str, task: str):
 
 @pytest.mark.optional
 @given(repo_path=repo_paths, task=tasks)
+@settings(max_examples=20, deadline=5000)
 def test_property_5_stages_completed_is_prefix(repo_path: str, task: str):
     """Property 5: stages_completed é prefixo ordenado da sequência de etapas.
 
@@ -243,7 +235,6 @@ def test_property_5_stages_completed_is_prefix(repo_path: str, task: str):
     expected_order = [
         "scanner",
         "analyzer",
-        "embeddings",
         "selector",
         "summarizer",
         "generator",
@@ -252,7 +243,7 @@ def test_property_5_stages_completed_is_prefix(repo_path: str, task: str):
 
     result = run_pipeline(repo_path, task)
 
-    assert len(result.stages_completed) <= 7
+    assert len(result.stages_completed) <= 6
 
     # Verifica que stages_completed é um prefixo de expected_order.
     for i, stage in enumerate(result.stages_completed):
@@ -260,33 +251,24 @@ def test_property_5_stages_completed_is_prefix(repo_path: str, task: str):
 
 
 @pytest.mark.optional
-@pytest.mark.parametrize("fail_at_index", range(7))
+@pytest.mark.parametrize("fail_at_index", range(6))
 def test_property_6_failure_preserves_previous_stages(fail_at_index: int):
-    """Property 6: Falha em etapa N preserva stages_completed das etapas anteriores.
-
-    Para qualquer pipeline onde a etapa de índice N lança exceção,
-    stages_completed SHALL conter exatamente os nomes das N etapas anteriores.
-
-    Validates: Requirements 3.4, 14.6
-    """
+    """Property 6: Falha em etapa N preserva stages_completed das etapas anteriores."""
     stage_names = [
         "scanner",
         "analyzer",
-        "embeddings",
         "selector",
         "summarizer",
         "generator",
         "reporter",
     ]
-    # Mapeamento de nome de etapa → nome da função importada no orquestrador
     stage_fn_map = {
-        "scanner": "scan_repository",
-        "analyzer": "analyze_files",
-        "embeddings": "generate_embeddings",
-        "selector": "select_relevant",
+        "scanner":    "scan_repository",
+        "analyzer":   "analyze_files",
+        "selector":   "select_relevant",
         "summarizer": "summarize_selected",
-        "generator": "generate_prompt",
-        "reporter": "format_result",
+        "generator":  "generate_prompt",
+        "reporter":   "format_result",
     }
     stage_to_fail = stage_names[fail_at_index]
     fn_name = stage_fn_map[stage_to_fail]

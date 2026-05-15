@@ -1,0 +1,95 @@
+name: CI Tests
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  push:
+    branches:
+      - main
+      - develop
+
+concurrency:
+  group: ci-tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Run Tests & Collect Metrics
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -e ".[dev]"
+
+      - name: Run pytest with coverage
+        run: |
+          set +e
+          pytest \
+            --json-report \
+            --json-report-file=pytest-report.json \
+            --cov=src/tokemize \
+            --cov-report=json \
+            --cov-report=term \
+            -v \
+            --tb=short
+          PYTEST_EXIT_CODE=$?
+          echo "PYTEST_EXIT_CODE=$PYTEST_EXIT_CODE" >> "$GITHUB_ENV"
+          set -e
+        continue-on-error: true
+
+      - name: Collect test metrics
+        run: |
+          python .github/scripts/collect_test_metrics.py \
+            --pytest-json pytest-report.json \
+            --coverage-json coverage.json \
+            --exit-code "$PYTEST_EXIT_CODE"
+
+          # Copy metrics from /tmp to workspace for artifact upload
+          cp /tmp/test-metrics.json test-metrics.json
+
+      - name: Upload test artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: |
+            pytest-report.json
+            coverage.json
+            test-metrics.json
+          retention-days: 7
+
+      - name: Print pytest summary if failed
+        if: env.PYTEST_EXIT_CODE != '0'
+        run: |
+          echo "=== pytest-report.json (failures only) ==="
+          python -c "
+          import json, sys
+          with open('pytest-report.json') as f:
+              report = json.load(f)
+          failed = [t for t in report.get('tests', []) if t.get('outcome') == 'failed']
+          for t in failed:
+              print('FAILED:', t['nodeid'])
+              print(t.get('call', {}).get('longrepr', '(no traceback)'))
+              print('---')
+          print(f'Total failed: {len(failed)}')
+          "
+
+      - name: Fail job if pytest failed
+        run: |
+          echo "pytest exited with code $PYTEST_EXIT_CODE"
+          exit "$PYTEST_EXIT_CODE"
+
+      - name: Trigger metrics updater
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        run: gh workflow run update-board-metrics.yml
+        env:
+          GH_TOKEN: ${{ secrets.PROJECT_TOKEN }}
