@@ -4,10 +4,10 @@ on:
   schedule:
     - cron: '0 */6 * * *'
   workflow_dispatch:
-  push:
+  workflow_run:
+    workflows: ["CI Tests"]
+    types: [completed]
     branches: [main]
-    paths-ignore:
-      - docs/showcase/config.json
 
 concurrency:
   group: update-board-metrics
@@ -28,6 +28,19 @@ jobs:
         with:
           fetch-depth: 0
           token: ${{ secrets.PROJECT_TOKEN }}
+
+      - name: Download test artifacts from CI run
+        if: github.event_name == 'workflow_run'
+        env:
+          GH_TOKEN: ${{ secrets.PROJECT_TOKEN }}
+          RUN_ID: ${{ github.event.workflow_run.id }}
+        run: |
+          mkdir -p /tmp/test-results
+          if gh run download "$RUN_ID" --repo "$GITHUB_REPOSITORY" -n test-results -D /tmp/test-results; then
+            echo "Artifacts downloaded from CI run $RUN_ID"
+          else
+            echo "No test-results artifact found for CI run $RUN_ID"
+          fi
 
       - name: Fetch all metrics via REST + GraphQL
         id: metrics
@@ -118,8 +131,13 @@ jobs:
       - name: Read test metrics (if available)
         id: test_metrics
         run: |
-          if [ -f "/tmp/test-metrics.json" ]; then
-            echo "Test metrics found, copying to /tmp/test_metrics_data.json"
+          ARTIFACT_METRICS_FILE=$(find /tmp/test-results -name 'test-metrics.json' 2>/dev/null | head -n 1)
+
+          if [ -n "$ARTIFACT_METRICS_FILE" ] && [ -f "$ARTIFACT_METRICS_FILE" ]; then
+            echo "Test metrics artifact found at $ARTIFACT_METRICS_FILE"
+            cat "$ARTIFACT_METRICS_FILE" > /tmp/test_metrics_data.json
+          elif [ -f "/tmp/test-metrics.json" ]; then
+            echo "Local test metrics found, copying to /tmp/test_metrics_data.json"
             cat /tmp/test-metrics.json > /tmp/test_metrics_data.json
           else
             echo "No test metrics available, will use previous values"
