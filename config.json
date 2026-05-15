@@ -105,51 +105,51 @@
       "Done": 26,
       "Todo": 2
     },
-    "lastUpdatedAt": "2026-05-15T14:07:52.344921+00:00"
+    "lastUpdatedAt": "2026-05-15T16:35:58.315006+00:00"
   },
   "repoStats": {
-    "totalCommits": 147,
+    "totalCommits": 223,
     "openPRs": 0,
-    "closedPRs": 62,
+    "closedPRs": 63,
     "contributors": 7,
     "activeBranches": 6,
-    "lastCommitAt": "2026-05-15T08:49:27Z",
-    "fetchedAt": "2026-05-15T14:07:52.345030+00:00"
+    "lastCommitAt": "2026-05-15T16:35:12Z",
+    "fetchedAt": "2026-05-15T16:35:58.315103+00:00"
   },
   "contributors": [
     {
       "avatar_url": "https://avatars.githubusercontent.com/in/15368?v=4",
-      "contributions": 60,
+      "contributions": 93,
       "html_url": "https://github.com/apps/github-actions",
       "login": "github-actions[bot]"
     },
     {
       "avatar_url": "https://avatars.githubusercontent.com/u/22981568?v=4",
-      "contributions": 47,
+      "contributions": 72,
       "html_url": "https://github.com/jrcosta",
       "login": "jrcosta"
     },
     {
-      "avatar_url": "https://avatars.githubusercontent.com/u/237599657?v=4",
-      "contributions": 14,
-      "html_url": "https://github.com/samuelmarquesgit",
-      "login": "samuelmarquesgit"
-    },
-    {
       "avatar_url": "https://avatars.githubusercontent.com/u/14351143?v=4",
-      "contributions": 12,
+      "contributions": 21,
       "html_url": "https://github.com/gvmertens",
       "login": "gvmertens"
     },
     {
+      "avatar_url": "https://avatars.githubusercontent.com/u/237599657?v=4",
+      "contributions": 19,
+      "html_url": "https://github.com/samuelmarquesgit",
+      "login": "samuelmarquesgit"
+    },
+    {
       "avatar_url": "https://avatars.githubusercontent.com/u/85140484?v=4",
-      "contributions": 7,
+      "contributions": 10,
       "html_url": "https://github.com/PauloSergioLR",
       "login": "PauloSergioLR"
     },
     {
       "avatar_url": "https://avatars.githubusercontent.com/u/65471872?v=4",
-      "contributions": 5,
+      "contributions": 6,
       "html_url": "https://github.com/edunotari",
       "login": "edunotari"
     },
@@ -164,8 +164,8 @@
     {
       "login": "jrcosta",
       "total": 30,
-      "open": 1,
-      "closed": 29,
+      "open": 0,
+      "closed": 30,
       "avatar_url": "https://avatars.githubusercontent.com/u/22981568?v=4",
       "html_url": "https://github.com/jrcosta"
     },
@@ -209,5 +209,15 @@
       "avatar_url": "https://avatars.githubusercontent.com/in/1143301?v=4",
       "html_url": "https://github.com/apps/copilot-swe-agent"
     }
-  ]
+  ],
+  "testMetrics": {
+    "totalTests": 0,
+    "passed": 0,
+    "failed": 0,
+    "skipped": 0,
+    "duration": 0.0,
+    "coverage": null,
+    "lastRunAt": null,
+    "status": "unknown"
+  }
 }
