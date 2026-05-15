@@ -6,9 +6,8 @@ on:
   workflow_dispatch:
   push:
     branches: [main]
-    paths:
-      # Não re-disparar quando o próprio workflow atualiza o config.json
-      - '!docs/showcase/config.json'
+    paths-ignore:
+      - docs/showcase/config.json
 
 concurrency:
   group: update-board-metrics
