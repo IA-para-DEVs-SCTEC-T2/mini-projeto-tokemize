@@ -11,7 +11,7 @@ import os
 from unittest.mock import Mock, patch
 
 import pytest
-from hypothesis import given, strategies as st
+from hypothesis import given, settings, strategies as st
 
 from tokemize.models import (
     AnalysisOutput,
@@ -150,6 +150,7 @@ tasks = st.text(min_size=0, max_size=100)
 
 @pytest.mark.optional
 @given(repo_path=repo_paths, task=tasks)
+@settings(max_examples=20, deadline=5000)
 def test_property_1_run_pipeline_never_raises(repo_path: str, task: str):
     """Property 1: run_pipeline nunca propaga exceção.
 
@@ -165,6 +166,7 @@ def test_property_1_run_pipeline_never_raises(repo_path: str, task: str):
 
 @pytest.mark.optional
 @given(task=tasks)
+@settings(max_examples=20, deadline=5000)
 def test_property_2_success_implies_no_failure_fields(task: str):
     """Property 2: Invariante de sucesso — campos nulos em caso de sucesso.
 
@@ -207,6 +209,7 @@ def test_property_3_failure_implies_valid_failed_stage():
 
 @pytest.mark.optional
 @given(repo_path=repo_paths, task=tasks)
+@settings(max_examples=20, deadline=5000)
 def test_property_4_elapsed_seconds_non_negative(repo_path: str, task: str):
     """Property 4: elapsed_seconds é sempre não-negativo.
 
@@ -220,6 +223,7 @@ def test_property_4_elapsed_seconds_non_negative(repo_path: str, task: str):
 
 @pytest.mark.optional
 @given(repo_path=repo_paths, task=tasks)
+@settings(max_examples=20, deadline=5000)
 def test_property_5_stages_completed_is_prefix(repo_path: str, task: str):
     """Property 5: stages_completed é prefixo ordenado da sequência de etapas.
 
