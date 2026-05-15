@@ -9,6 +9,7 @@
 import { loadConfig }            from './configLoader.js';
 import { renderHero }            from './components/hero.js';
 import { renderStats }           from './components/stats.js';
+import { renderTestMetrics }     from './components/testMetrics.js';
 import { renderContributionGraph, renderPRGraph } from './components/contributionGraph.js';
 import { renderProgressTracker } from './components/progressTracker.js';
 import { renderTechStack }       from './components/techStack.js';
@@ -43,6 +44,9 @@ async function init() {
   } else {
     renderStats(null, false, config.boardMetrics ?? null);
   }
+
+  // ── Qualidade de Código (métricas de teste) ───────────────────────────────
+  renderTestMetrics(config.testMetrics ?? null);
 
   // ── Commits por contribuidor ──────────────────────────────────────────────
   renderContributionGraph(config.contributors ?? []);

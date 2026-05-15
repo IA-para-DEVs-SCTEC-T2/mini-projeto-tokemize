@@ -1,20 +1,21 @@
 {
   "projectName": "Tokemize",
-  "tagline": "Uma camada intermediária que melhora como usamos IA",
+  "tagline": "Otimização de contexto para LLMs",
   "repo": {
     "owner": "IA-para-DEVs-SCTEC-T2",
     "name": "mini-projeto-tokemize",
     "apiTimeout": 8000
   },
   "problems": [
-    "Alto custo de tokens",
-    "Respostas imprecisas e alucinações",
-    "Processamento ineficiente"
+    "Contexto demais em prompts técnicos",
+    "Prompts longos e difíceis de revisar",
+    "Uso ineficiente de tokens"
   ],
   "pipeline": [
-    "Entrada Bruta",
+    "Repositório + tarefa",
     "Tokemize",
-    "Entrada Otimizada"
+    "Contexto compacto",
+    "Prompt otimizado"
   ],
   "techStack": [
     {
@@ -30,18 +31,18 @@
       "url": "https://faiss.ai/index.html"
     },
     {
-      "name": "OpenAI API",
-      "url": "https://platform.openai.com/docs"
+      "name": "Typer",
+      "url": "https://typer.tiangolo.com/"
     },
     {
-      "name": "Anthropic API",
-      "url": "https://docs.anthropic.com"
+      "name": "pyperclip",
+      "url": "https://pyperclip.readthedocs.io/"
     }
   ],
   "modules": [
     {
-      "id": "parser",
-      "label": "Parser",
+      "id": "repository-analyzer",
+      "label": "Repository Analyzer",
       "status": "done"
     },
     {
@@ -50,13 +51,13 @@
       "status": "done"
     },
     {
-      "id": "selector",
-      "label": "Selector",
+      "id": "compressor",
+      "label": "Compressor",
       "status": "done"
     },
     {
-      "id": "optimizer",
-      "label": "Optimizer",
+      "id": "context-store",
+      "label": "Context Store",
       "status": "done"
     },
     {
