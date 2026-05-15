@@ -7,6 +7,8 @@ on:
     branches:
       - main
       - develop
+    paths-ignore:
+      - docs/showcase/config.json
 
 concurrency:
   group: ci-tests-${{ github.ref }}
@@ -87,9 +89,3 @@ jobs:
         run: |
           echo "pytest exited with code $PYTEST_EXIT_CODE"
           exit "$PYTEST_EXIT_CODE"
-
-      - name: Trigger metrics updater
-        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-        run: gh workflow run update-board-metrics.yml
-        env:
-          GH_TOKEN: ${{ secrets.PROJECT_TOKEN }}
