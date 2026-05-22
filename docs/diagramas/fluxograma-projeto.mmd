@@ -1,0 +1,110 @@
+flowchart TD
+    inicio([Inicio])
+    usuario[Usuario informa tarefa e repositorio]
+    cli[Tokemize CLI<br/>comandos toke ou prepare]
+
+    valida_repo{Repositorio existe<br/>e e diretorio?}
+    erro_repo([Erro: caminho invalido])
+    valida_tarefa{Tarefa tem pelo menos<br/>3 caracteres uteis?}
+    erro_tarefa([Erro: tarefa invalida])
+
+    analyzer[Repository Analyzer<br/>analyze_repository]
+    scanner[Repository Scanner<br/>mapeia arquivos e metadados]
+    tree_sitter[TreeSitter Analyzer<br/>extrai artefatos do codigo]
+    file_analyses[(FileAnalysis list)]
+
+    selector[Intelligent Selector<br/>ranqueia artefatos pela tarefa]
+    artifacts[(Artifact list<br/>top relevantes)]
+
+    compressor[Compressor<br/>gera contexto compacto]
+    compressed[(CompressedContext<br/>markdown + token count)]
+
+    store[Context Saver<br/>salva em .tokemize/context]
+    store_ok{Contexto salvo?}
+    context_path[(context_file_path)]
+    no_context[(sem arquivo de contexto)]
+
+    builder[Prompt Builder<br/>monta prompt final]
+    prompt[(OptimizedPrompt)]
+
+    output_file{Opcao --output<br/>informada?}
+    save_output[Salva prompt em arquivo]
+
+    print_prompt{Opcao --print<br/>informada?}
+    stdout[Imprime prompt no terminal]
+
+    clipboard[Clipboard<br/>copia prompt]
+    clipboard_ok{Copia realizada?}
+    success([Prompt pronto])
+    warning([Prompt gerado<br/>sem copia para clipboard])
+
+    inicio --> usuario --> cli
+    cli --> valida_repo
+    valida_repo -- nao --> erro_repo
+    valida_repo -- sim --> valida_tarefa
+    valida_tarefa -- nao --> erro_tarefa
+    valida_tarefa -- sim --> analyzer
+
+    analyzer --> scanner --> tree_sitter --> file_analyses
+    file_analyses --> selector --> artifacts
+    artifacts --> compressor --> compressed
+    compressed --> store --> store_ok
+
+    store_ok -- sim --> context_path
+    store_ok -- nao --> no_context
+    context_path --> builder
+    no_context --> builder
+    compressed --> builder
+
+    builder --> prompt
+    prompt --> output_file
+    output_file -- sim --> save_output --> print_prompt
+    output_file -- nao --> print_prompt
+    print_prompt -- sim --> stdout --> clipboard
+    print_prompt -- nao --> clipboard
+    clipboard --> clipboard_ok
+    clipboard_ok -- sim --> success
+    clipboard_ok -- nao --> warning
+
+    subgraph Entradas
+        usuario
+        cli
+    end
+
+    subgraph Validacao
+        valida_repo
+        valida_tarefa
+        erro_repo
+        erro_tarefa
+    end
+
+    subgraph Analise
+        analyzer
+        scanner
+        tree_sitter
+        file_analyses
+    end
+
+    subgraph Otimizacao
+        selector
+        artifacts
+        compressor
+        compressed
+        store
+        store_ok
+        context_path
+        no_context
+    end
+
+    subgraph Geracao_e_saida
+        builder
+        prompt
+        output_file
+        save_output
+        print_prompt
+        stdout
+        clipboard
+        clipboard_ok
+        success
+        warning
+    end
