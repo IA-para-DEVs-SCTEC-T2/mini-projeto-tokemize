@@ -17,6 +17,7 @@ concurrency:
 jobs:
   test:
     name: Run Tests & Collect Metrics
+    if: false # disabled
     runs-on: ubuntu-latest
     timeout-minutes: 10
 

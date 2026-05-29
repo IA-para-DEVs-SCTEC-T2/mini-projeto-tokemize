@@ -13,6 +13,7 @@ concurrency:
 jobs:
   deploy:
     name: Build & Deploy Showcase
+    if: false # disabled
     runs-on: ubuntu-latest
     timeout-minutes: 5
 

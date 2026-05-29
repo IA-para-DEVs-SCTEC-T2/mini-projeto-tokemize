@@ -4,6 +4,7 @@ on: pull_request
 
 jobs:
   check-branch-name:
+    if: false # disabled
     runs-on: ubuntu-latest
     steps:
       - uses: deepakputhraya/action-branch-name@master

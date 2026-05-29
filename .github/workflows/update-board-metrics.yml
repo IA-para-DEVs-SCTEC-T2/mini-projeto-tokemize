@@ -16,6 +16,7 @@ concurrency:
 jobs:
   update-metrics:
     name: Fetch All Metrics & Update config.json
+    if: false # disabled
     runs-on: ubuntu-latest
     timeout-minutes: 10
 

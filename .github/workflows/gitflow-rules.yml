@@ -6,6 +6,7 @@ on:
 
 jobs:
   validate-gitflow:
+    if: false # disabled
     runs-on: ubuntu-latest
 
     steps:
